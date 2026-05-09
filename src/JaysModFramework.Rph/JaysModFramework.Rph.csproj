@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net48</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!--
+      ExcludeAssets="runtime": both DLLs ship with GTA V / are installed separately.
+      This project only needs them as compile-time references.
+    -->
+    <PackageReference Include="RagePluginHook" Version="1.124.0" ExcludeAssets="runtime" />
+    <PackageReference Include="LemonUI.RagePluginHook" Version="2.2.0" ExcludeAssets="runtime" />
+  </ItemGroup>
+
+</Project>
