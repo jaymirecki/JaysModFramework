@@ -13,4 +13,8 @@
     <PackageReference Include="LemonUI.RagePluginHook" Version="2.2.0" ExcludeAssets="runtime" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\JaysModFramework.Core\JaysModFramework.Core.csproj" />
+  </ItemGroup>
+
 </Project>
