@@ -21,11 +21,15 @@ This directory contains all internal documentation for JaysModFramework (JMF).
 | What we're building next | [Product Strategy](product/strategy.md) |
 | Who the users are | [Personas](product/personas/) |
 | Term definitions and abbreviations | [Glossary](product/glossary.md) |
+| Game folder layout and config.xml structure | [File Structure](architecture/file-structure.md) |
 | Why we chose RPH over SHVDN | [ADR-0001](architecture/decisions/adr-0001-rph-vs-shvdn.md) |
 | Why interiors are code, not config | [ADR-0002](architecture/decisions/adr-0002-interiors-not-data-driven.md) |
 | GTA VI portability strategy | [ADR-0003](architecture/decisions/adr-0003-gta6-portability.md) |
 | Data folder structure and content mod patching | [ADR-0004](architecture/decisions/adr-0004-one-file-per-content-item.md) |
 | Framework layer architecture and INativeFramework | [ADR-0005](architecture/decisions/adr-0005-framework-layer-architecture.md) |
+| Settings loading and structure | [Settings](features/settings/requirements.md) |
+| Logging levels, file output, and notifications | [Logger](features/logger/requirements.md) |
+| Native UI notifications (Notify) | [UIService](features/ui-service/requirements.md) |
 | How plugins register and tick | [Plugin System](features/plugin-system/technical-design.md) |
 | Interaction menu design | [Interaction Menu](features/plugin-interaction-menu/technical-design.md) |
 | Siren Manager design | [Siren Manager](features/plugin-siren-manager/technical-design.md) |

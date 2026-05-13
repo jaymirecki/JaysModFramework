@@ -267,32 +267,9 @@ public interface IFrameworkServices
 
 ## Framework File Structure
 
-```
-<GTA V root>/
-  JMF/
-    Settings.xml      Framework settings + default plugin settings
-    Data/             Content files (maps, vehicles, outfits, etc.)
-    Saves/            Save data and game state
-```
+See [File Structure](../../architecture/file-structure.md) for the full game folder layout and `config.xml` shape.
 
-### Settings.xml Shape
-
-```xml
-<JmfSettings>
-  <Framework>
-    <DebugMode>false</DebugMode>
-    <MenuOpenControl>CharacterWheel</MenuOpenControl>
-  </Framework>
-  <Plugins>
-    <Plugin name="Siren Manager">
-      <DefaultActivatedStatus>true</DefaultActivatedStatus>
-      <ToggleControl>VehicleHorn</ToggleControl>
-    </Plugin>
-  </Plugins>
-</JmfSettings>
-```
-
-Plugin settings are keyed by `IPlugin.Name`. Property names in the XML match the `PluginSettings` subclass property names. Reflection is used for both the menu and the serialization.
+The interaction menu reads `FrameworkSettings.DebugMode` and `FrameworkSettings.MenuOpenControl` from `Framework.Settings` at initialization. Plugin settings are keyed by `IPlugin.Name`; property names in `config.xml` match the plugin's `IPluginSettings` subclass property names. Reflection is used for both menu item generation and serialization.
 
 ## Decisions
 
