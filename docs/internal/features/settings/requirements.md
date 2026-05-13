@@ -20,7 +20,7 @@ status: active
 
 ### Structure
 
-`Framework.Settings` implements `ISettingsFramework` and exposes settings in named groups:
+`Framework.Settings` is a `FrameworkConfig` instance and exposes settings in named groups:
 
 **Logger group** (`Settings.Logger`):
 - `LogLocation` — path to the log file. Default: `JMF/JaysModFramework.log`.
@@ -35,17 +35,6 @@ status: active
 - A collection of per-plugin settings keyed by plugin name (`IPlugin.Name`).
 - Base type `IPluginSettings` provides `DefaultActivatedStatus`.
 - Plugins extend `IPluginSettings` with additional typed properties (e.g. `SirensSettings` adds `ControllerButton` and `KeyboardKey`).
-
-### Interface
-
-```csharp
-public interface ISettingsFramework
-{
-    LoggerSettings Logger { get; }
-    FrameworkSettings Framework { get; }
-    IReadOnlyDictionary<string, IPluginSettings> Plugins { get; }
-}
-```
 
 ## Out of Scope
 

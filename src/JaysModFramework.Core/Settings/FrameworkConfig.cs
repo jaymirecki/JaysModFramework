@@ -9,7 +9,7 @@ namespace JaysModFramework.Core.Settings;
 /// Loads framework and plugin settings from config.xml.
 /// If the file does not exist, defaults are used and the file is created.
 /// </summary>
-public class FrameworkConfig : ISettingsFramework
+public class FrameworkConfig
 {
     public LoggerSettings Logger { get; private set; } = new LoggerSettings();
     public FrameworkSettings Framework { get; private set; } = new FrameworkSettings();
