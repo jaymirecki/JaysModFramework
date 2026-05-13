@@ -13,13 +13,42 @@ JMF is organized around three principles:
 2. **Stable IDs over native handles.** GUIDs are the source of truth for entities. GTA handle values are ephemeral and trusted only within a session.
 3. **Content is data; mechanics are code.** New vehicles, peds, and props are added via XML. New gameplay systems require compilation.
 
+## Layer Architecture
+
+JMF has three layers:
+
+```
+┌─────────────────────────────────────────────┐
+│                Plugin Layer                  │
+│  Core plugins (bundled) + external plugins   │
+│  Reference Core; receive IFrameworkServices  │
+└───────────────────┬─────────────────────────┘
+                    │ IFrameworkServices
+┌───────────────────▼─────────────────────────┐
+│               Framework Layer (Core)         │
+│  Framework, PluginManager, EntityRegistry    │
+│  MenuService, and other engine-free services │
+└───────────────────┬─────────────────────────┘
+                    │ INativeFramework
+┌───────────────────▼─────────────────────────┐
+│              Native Layer (Rph)              │
+│  RphNativeFramework, IUIService, etc.        │
+│  The only project with RPH/GTA references   │
+└─────────────────────────────────────────────┘
+```
+
+The `INativeFramework` interface is the primary testability seam. Tests construct `Framework` with a `FakeNativeFramework` instead of the RPH implementation.
+
+### Deployment
+
+Players install two DLLs: the RPH runtime and the JMF DLL. Core plugins (those maintained alongside the framework) are compiled into the JMF DLL alongside the framework itself — no separate plugin DLL required for bundled plugins.
+
 ## Project Structure
 
 ```
-JaysModFramework.Core       // interfaces + business logic; no RPH/GTA references
-JaysModFramework.Rph        // RPH implementations of Core interfaces
+JaysModFramework.Core       // Framework layer: interfaces, business logic, PluginManager; no RPH/GTA references
+JaysModFramework.Rph        // Native layer: RphNativeFramework and RPH implementations; no direct plugin logic
 JaysModFramework.Tests      // xUnit/NUnit; references Core only
-Plugins/*                   // plugins reference Core; use injected interfaces
 ```
 
 See [Tech Stack](tech-stack.md) for language and runtime details.
@@ -76,6 +105,7 @@ A central `TickManager` runs in a GameFiber yield loop and dispatches to registe
 | RPH chosen over SHVDN | [ADR-0001](decisions/adr-0001-rph-vs-shvdn.md) |
 | Interiors are code, not config | [ADR-0002](decisions/adr-0002-interiors-not-data-driven.md) |
 | Engine-free core for GTA VI portability | [ADR-0003](decisions/adr-0003-gta6-portability.md) |
+| Framework layer architecture and INativeFramework | [ADR-0005](decisions/adr-0005-framework-layer-architecture.md) |
 
 ## Principles Summary
 
@@ -88,3 +118,5 @@ A central `TickManager` runs in a GameFiber yield loop and dispatches to registe
 7. **Interiors are code, not config** — too varied to generalize; enum + factory + handler pattern.
 8. **Worldspace is fiction; map is technical** — the fictional region and the GTA geometry it uses are separate concerns.
 9. **GTA VI portability** — the abstraction layer is the porting boundary; only RPH implementations get rewritten.
+10. **INativeFramework is the engine seam** — Framework (Core) depends only on this interface; all RPH/GTA calls flow through it.
+11. **PluginManager is a Framework concern** — the RPH entry point constructs INativeFramework and hands it to Framework; plugin registration and lifecycle are Core responsibilities.

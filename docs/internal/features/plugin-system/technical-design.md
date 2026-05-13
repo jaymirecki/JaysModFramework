@@ -11,7 +11,7 @@ related:
 
 ## Overview
 
-The plugin system is a lightweight registration and lifecycle pattern. All plugins are internal to the framework DLL (no external plugin loading). Plugins declare themselves by registering with a `PluginRegistry` instance and are initialized with access to shared framework services.
+The plugin system is a lightweight registration and lifecycle pattern. Core plugins (maintained alongside the framework) are compiled into the framework DLL. External plugins ship as separate DLLs and reference `JaysModFramework.Core`. Plugins are registered and initialized by `Framework` internally — the RPH entry point has no direct knowledge of plugins.
 
 ## IPlugin Interface
 
@@ -43,18 +43,27 @@ public class PluginRegistry
 
 ### Registration Pattern
 
-Plugins self-register. At framework bootstrap, each plugin is instantiated and registered:
+Plugins self-register. Core plugins are registered inside the `Framework` constructor, not by the RPH entry point:
 
 ```csharp
-// In framework bootstrap / entry point
-var registry = new PluginRegistry();
-registry.Register(new SirenManagerPlugin());
-// registry.Register(new VehicleSpawnerPlugin());
-
-registry.InitializeAll(services);
+// Framework.cs (Core) — RPH entry point never touches plugin registration
+public Framework(INativeFramework nativeFramework)
+{
+    // ... wire up services ...
+    _pluginManager = new PluginManager();
+    _pluginManager.Register(new SirenManagerPlugin());
+    // _pluginManager.Register(new VehicleSpawnerPlugin());
+    _pluginManager.InitializeAll(this);
+}
 ```
 
-This is explicit and compile-checked — no reflection, no assembly scanning, no manifest file.
+```csharp
+// RphEntryPoint.cs — knows nothing about plugins
+var nativeFramework = new RphNativeFramework();
+var framework = new Framework(nativeFramework);
+```
+
+Registration is explicit and compile-checked — no reflection, no assembly scanning, no manifest file.
 
 ## IFrameworkServices
 

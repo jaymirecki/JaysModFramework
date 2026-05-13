@@ -25,6 +25,7 @@ This directory contains all internal documentation for JaysModFramework (JMF).
 | Why interiors are code, not config | [ADR-0002](architecture/decisions/adr-0002-interiors-not-data-driven.md) |
 | GTA VI portability strategy | [ADR-0003](architecture/decisions/adr-0003-gta6-portability.md) |
 | Data folder structure and content mod patching | [ADR-0004](architecture/decisions/adr-0004-one-file-per-content-item.md) |
+| Framework layer architecture and INativeFramework | [ADR-0005](architecture/decisions/adr-0005-framework-layer-architecture.md) |
 | How plugins register and tick | [Plugin System](features/plugin-system/technical-design.md) |
 | Interaction menu design | [Interaction Menu](features/plugin-interaction-menu/technical-design.md) |
 | Siren Manager design | [Siren Manager](features/plugin-siren-manager/technical-design.md) |

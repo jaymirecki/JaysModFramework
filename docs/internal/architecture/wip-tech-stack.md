@@ -47,11 +47,32 @@ Tests run in a standard .NET test runner against the `YourFramework.Core` projec
 ## Project Layout
 
 ```
-JaysModFramework.Core       // interfaces + business logic; no RPH/GTA references
-JaysModFramework.Rph        // RPH implementations of Core interfaces
+JaysModFramework.Core       // Framework layer: interfaces, business logic, PluginManager; no RPH/GTA references
+JaysModFramework.Rph        // Native layer: RphNativeFramework implementing INativeFramework; no direct plugin logic
 JaysModFramework.Tests      // xUnit/NUnit; references Core only
-Plugins/*                   // plugins reference Core; use injected interfaces
 ```
+
+Core plugins (bundled with the framework) live in `Core` alongside the framework itself. Both `Core` and `Rph` compile into a single JMF DLL. External plugins ship as separate DLLs and reference `Core`.
+
+### INativeFramework
+
+`INativeFramework` (defined in `Core`) is the interface between the Framework and Native layers. `Framework` receives it via constructor injection:
+
+```csharp
+// RphEntryPoint.cs — the only place that knows about RPH
+var nativeFramework = new RphNativeFramework();
+var framework = new Framework(nativeFramework);
+```
+
+In tests, each test constructs its own `Framework` with a configured `FakeNativeFramework`:
+
+```csharp
+var fake = new FakeNativeFramework();
+fake.VehicleService.Configure(spawned: true, sirenOn: true);
+var framework = new Framework(fake);
+```
+
+Because each test holds its own `Framework` instance, tests with different fake configurations can run in parallel safely.
 
 ## Related Documentation
 
