@@ -26,17 +26,18 @@ public class MenuItem
     public string Title { get; set; }
     public string Description { get; set; }
     public bool Enabled { get; set; } = true;
+    public Menu? LinkedSubmenu { get; internal set; }  // set by Menu.AddSubmenu; null for regular items
 
     public event Action? OnSelected;  // fired when the player activates the item
     public event Action? OnHover;     // fired when the item becomes the highlighted item
 }
 ```
 
-A submenu item is a `MenuItem` whose `OnSelected` calls `MenuService.ShowMenu(childMenu)`.
+When `LinkedSubmenu` is set, UIService uses `NativeMenu.AddSubMenu` instead of a standalone `NativeItem`, delegating navigation and item-restoration to LemonUI.
 
 ## Menu
 
-A named collection of menu items.
+A named collection of menu items. Always constructed via `MenuService.CreateMenu` — the constructor is internal.
 
 ```csharp
 namespace JaysModFramework.Core.UI;
@@ -50,12 +51,30 @@ public class Menu
 
     public void Add(MenuItem item);
     public void Remove(MenuItem item);
+    public void AddSubmenu(Menu submenu);
 }
 ```
 
+`AddSubmenu` creates a `MenuItem` with `LinkedSubmenu` set — no `OnSelected` wiring needed. LemonUI handles the navigation when UIService sees the link:
+
+```csharp
+public void AddSubmenu(Menu submenu)
+{
+    var item = new MenuItem
+    {
+        Title = submenu.Title,
+        Description = submenu.Description,
+        LinkedSubmenu = submenu
+    };
+    Add(item);
+}
+```
+
+The caller never configures navigation for submenu items — `AddSubmenu` and UIService handle it entirely. Previous item highlighting on Back is restored by LemonUI natively.
+
 ## MenuService
 
-`Framework.MenuService` creates menus and enforces single-menu visibility.
+`Framework.MenuService` creates menus and enforces single-menu visibility. Submenu navigation is owned by LemonUI; `MenuService` tracks only the root menu state.
 
 ```csharp
 namespace JaysModFramework.Core.UI;
@@ -65,12 +84,22 @@ public class MenuService
     public Menu CreateMenu(string bannerText, string title);
     public void ShowMenu(Menu menu);
     public void HideMenu();
+    public void Back();
 }
 ```
 
-- `CreateMenu` constructs a `Menu` and registers it with `INativeUIService` so it is included in the LemonUI pool.
-- `ShowMenu` makes the given menu visible. Any currently visible menu is hidden first.
-- `HideMenu` hides the currently visible menu. The player can also close the menu by pressing Back, which LemonUI handles automatically.
+- `CreateMenu` constructs a `Menu`, registers it with `INativeUIService` immediately, and returns it. `Menu` does not need an injected `MenuService` reference — `AddSubmenu` uses `LinkedSubmenu` rather than callbacks.
+- `ShowMenu` shows the given menu as the root. Any currently visible menu is hidden first.
+- `HideMenu` hides the current menu.
+- `Back` instructs UIService to trigger a LemonUI back navigation programmatically. If the current menu is the root (no parent in LemonUI), this closes the menu.
+
+### Navigation Ownership
+
+LemonUI owns submenu navigation. When UIService registers a menu containing items with `LinkedSubmenu` set, it uses `NativeMenu.AddSubMenu` to link them. From that point, LemonUI manages:
+- Which menu is visible when the player selects a submenu item.
+- Which item is highlighted when the player presses Back.
+
+UIService fires an event when LemonUI closes the root menu via Back (the player backing out past the top level). `MenuService` subscribes to this event to update its internal state (marking no menu as currently visible).
 
 ### Framework Integration
 
@@ -98,7 +127,14 @@ public interface INativeUIService
 
 `SuppressNativeMenu` is called every tick by `InteractionMenu` to prevent the native GTA interaction menu from appearing when the player holds the open control.
 
-The Native layer maps `Menu` → `NativeMenu` and `MenuItem` → `NativeItem`, wiring LemonUI's `Activated` and `Selected` events to the `MenuItem`'s `OnSelected` and `OnHover` events.
+The Native layer maps `Menu` → `NativeMenu` and `MenuItem` → `NativeItem` or `NativeMenu.AddSubMenu` depending on whether `LinkedSubmenu` is set. LemonUI's `Activated` and `Selected` events are wired to `OnSelected` and `OnHover` for regular items. For submenu items, LemonUI handles navigation natively — including restoring the previously selected item when the player presses Back. UIService exposes an event that fires when LemonUI closes the root menu so `MenuService` can update its visibility state.
+
+## Decisions
+
+| # | Question | Decision |
+|---|---|---|
+| 1 | Submenu model: tree vs. callback | `Menu.AddSubmenu` creates a MenuItem with `LinkedSubmenu` set. UIService uses `NativeMenu.AddSubMenu`, delegating navigation and item-restoration to LemonUI. `MenuService` does not maintain a navigation stack — LemonUI owns submenu navigation. |
+| 2 | Registration timing | Eager — `CreateMenu` registers with `INativeUIService` immediately. Safe because `MenuService` is constructed after the native layer is ready. |
 
 ## Out of Scope
 
@@ -108,7 +144,7 @@ The Native layer maps `Menu` → `NativeMenu` and `MenuItem` → `NativeItem`, w
 
 ## Future Direction
 
-The current design delegates significant menu logic to the Native layer (LemonUI conversion, input handling, pool management). The long-term goal is to move this logic up into the Framework layer, leaving the Native layer responsible only for drawing — accepting a flat list of rendered items and coordinates rather than managing menus as objects. This is deferred until the current LemonUI-backed approach proves limiting.
+The current design delegates submenu navigation to LemonUI (Option A). This means the Native layer owns Back navigation and item-restoration behavior. The long-term goal (Option B) is to move all navigation logic into the Framework layer — `MenuService` owns the full navigation stack and selected-item tracking, and the Native layer is reduced to pure drawing (accepting a flat list of rendered items and coordinates). This transition is the natural milestone for replacing LemonUI with a custom renderer.
 
 ## Related Documentation
 
