@@ -1,4 +1,4 @@
-namespace JaysModFramework.Core.Settings;
+namespace JaysModFramework.Core.Game.Settings;
 
 public class LoggerSettings
 {

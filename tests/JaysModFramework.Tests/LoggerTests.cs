@@ -1,7 +1,8 @@
 using System;
 using System.IO;
 using JaysModFramework.Core;
-using JaysModFramework.Core.Settings;
+using JaysModFramework.Core.Game;
+using JaysModFramework.Core.Game.Settings;
 using JaysModFramework.Tests.Fakes;
 using Xunit;
 
@@ -48,7 +49,7 @@ public class LoggerTests : IDisposable
     {
         var framework = BuildFramework(logLevel: LogLevel.Info);
 
-        framework.Logger.Info("hello");
+        framework.Game.Logger.Info("hello");
 
         Assert.Contains("hello", File.ReadAllText(LogPath));
     }
@@ -58,7 +59,7 @@ public class LoggerTests : IDisposable
     {
         var framework = BuildFramework(logLevel: LogLevel.Info);
 
-        framework.Logger.Debug("should not appear");
+        framework.Game.Logger.Debug("should not appear");
 
         Assert.DoesNotContain("should not appear", File.ReadAllText(LogPath));
     }
@@ -68,7 +69,7 @@ public class LoggerTests : IDisposable
     {
         var framework = BuildFramework(logLevel: LogLevel.Info);
 
-        framework.Logger.Error("something broke");
+        framework.Game.Logger.Error("something broke");
 
         Assert.Contains("something broke", File.ReadAllText(LogPath));
     }
@@ -78,7 +79,7 @@ public class LoggerTests : IDisposable
     {
         var framework = BuildFramework();
 
-        framework.Logger.Warn("watch out");
+        framework.Game.Logger.Warn("watch out");
 
         Assert.Contains("[WARN]", File.ReadAllText(LogPath));
     }
@@ -88,7 +89,7 @@ public class LoggerTests : IDisposable
     {
         var framework = BuildFramework();
 
-        framework.Logger.Info("timestamped");
+        framework.Game.Logger.Info("timestamped");
 
         Assert.Matches(@"\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}", File.ReadAllText(LogPath));
     }
@@ -98,7 +99,7 @@ public class LoggerTests : IDisposable
     {
         var framework = BuildFramework(notificationLevel: LogLevel.Error);
 
-        framework.Logger.Error("notify me");
+        framework.Game.Logger.Error("notify me");
 
         Assert.Single(_fakeNative.UIService.Notifications, n => n.Contains("notify me"));
     }
@@ -108,7 +109,7 @@ public class LoggerTests : IDisposable
     {
         var framework = BuildFramework(notificationLevel: LogLevel.Error);
 
-        framework.Logger.Info("quiet");
+        framework.Game.Logger.Info("quiet");
 
         Assert.Empty(_fakeNative.UIService.Notifications);
     }
@@ -118,7 +119,7 @@ public class LoggerTests : IDisposable
     {
         var framework = BuildFramework(notificationLevel: LogLevel.Debug);
 
-        framework.Logger.Debug("debug msg");
+        framework.Game.Logger.Debug("debug msg");
 
         Assert.Single(_fakeNative.UIService.Notifications, n => n.Contains("[DEBUG]"));
     }
@@ -128,7 +129,7 @@ public class LoggerTests : IDisposable
     {
         var framework = BuildFramework(logLevel: LogLevel.None);
 
-        framework.Logger.Error("suppressed");
+        framework.Game.Logger.Error("suppressed");
 
         Assert.DoesNotContain("suppressed", File.ReadAllText(LogPath));
     }

@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using JaysModFramework.Core.Settings;
+using JaysModFramework.Core.Game.Settings;
 using Xunit;
 
 namespace JaysModFramework.Tests.Settings;

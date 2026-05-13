@@ -1,4 +1,4 @@
-namespace JaysModFramework.Core.Settings;
+namespace JaysModFramework.Core.Game.Settings;
 
 /// <summary>
 /// Base settings contract for all plugins. Plugins extend this with additional typed properties.

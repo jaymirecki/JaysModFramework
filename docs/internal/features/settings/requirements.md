@@ -29,7 +29,7 @@ status: active
 
 **Framework group** (`Settings.Framework`):
 - `DebugMode` — enables the Debug submenu in the interaction menu. Default: `false`.
-- `MenuOpenControl` — game control that opens the interaction menu. Default: `CharacterWheel`.
+- `MenuOpenControl` — game control that opens the interaction menu. Typed as `JmfControl`. Default: `JmfControl.InteractionMenu`.
 
 **Plugins** (`Settings.Plugins`):
 - A collection of per-plugin settings keyed by plugin name (`IPlugin.Name`).

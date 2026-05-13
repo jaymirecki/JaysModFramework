@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Xml.Linq;
 
-namespace JaysModFramework.Core.Settings;
+namespace JaysModFramework.Core.Game.Settings;
 
 /// <summary>
 /// Loads framework and plugin settings from config.xml.

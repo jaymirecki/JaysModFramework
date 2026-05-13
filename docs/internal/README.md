@@ -30,7 +30,10 @@ This directory contains all internal documentation for JaysModFramework (JMF).
 | Settings loading and structure | [Settings](features/settings/requirements.md) |
 | Logging levels, file output, and notifications | [Logger](features/logger/requirements.md) |
 | Native UI notifications (Notify) | [UIService](features/ui-service/requirements.md) |
+| Native tick and control-press events | [Lifecycle](features/lifecycle/requirements.md) |
+| Menu and menu item abstractions, MenuService | [MenuService](features/menu-service/requirements.md) |
 | How plugins register and tick | [Plugin System](features/plugin-system/technical-design.md) |
+| Interaction menu requirements | [Interaction Menu Requirements](features/plugin-interaction-menu/requirements.md) |
 | Interaction menu design | [Interaction Menu](features/plugin-interaction-menu/technical-design.md) |
 | Siren Manager design | [Siren Manager](features/plugin-siren-manager/technical-design.md) |
 | Entity system design | [Entity System](features/entity-system/wip-technical-design.md) |

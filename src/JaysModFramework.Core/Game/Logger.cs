@@ -1,9 +1,9 @@
 using System;
 using System.IO;
 using JaysModFramework.Core.Native;
-using JaysModFramework.Core.Settings;
+using JaysModFramework.Core.Game.Settings;
 
-namespace JaysModFramework.Core;
+namespace JaysModFramework.Core.Game;
 
 /// <summary>
 /// Writes log messages to a file and optionally surfaces them as in-game notifications.
@@ -17,15 +17,15 @@ public class Logger
     private readonly INativeUIService _uiService;
     private readonly object _lock = new object();
 
-    public Logger(Framework framework)
+    public Logger(GameServices game)
     {
-        var settings = framework.Settings.Logger;
+        var settings = game.Settings.Logger;
         _logPath = Path.IsPathRooted(settings.LogLocation)
             ? settings.LogLocation
-            : Path.Combine(framework.NativeFramework.GameDirectory, settings.LogLocation);
+            : Path.Combine(game.NativeFramework.GameDirectory, settings.LogLocation);
         _logLevel = settings.LogLevel;
         _notificationLevel = settings.NotificationLevel;
-        _uiService = framework.NativeFramework.UIService;
+        _uiService = game.NativeFramework.UIService;
 
         Directory.CreateDirectory(Path.GetDirectoryName(_logPath)!);
         WriteToFile("INFO", "=== JMF session started ===");

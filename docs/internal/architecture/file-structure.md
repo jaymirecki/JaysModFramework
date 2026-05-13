@@ -28,7 +28,7 @@ Stores all framework and plugin settings. The root element is `<JmfConfig>`.
 <JmfConfig>
   <Framework>
     <DebugMode>false</DebugMode>
-    <MenuOpenControl>CharacterWheel</MenuOpenControl>
+    <MenuOpenControl>InteractionMenu</MenuOpenControl>
   </Framework>
   <Logger>
     <LogLocation>JMF/JaysModFramework.log</LogLocation>

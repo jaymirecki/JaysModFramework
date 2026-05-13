@@ -1,4 +1,4 @@
-namespace JaysModFramework.Core.Settings;
+namespace JaysModFramework.Core.Game.Settings;
 
 /// <summary>
 /// Base plugin settings loaded from config.xml. Plugins extend this class to add

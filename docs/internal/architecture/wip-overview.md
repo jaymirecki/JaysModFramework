@@ -26,18 +26,41 @@ JMF has three layers:
                     │ IFrameworkServices
 ┌───────────────────▼─────────────────────────┐
 │               Framework Layer (Core)         │
-│  Framework, PluginManager, EntityRegistry    │
-│  MenuService, and other engine-free services │
+│                                             │
+│  Framework.Game     — "how it works"        │
+│    Logger, Settings, MenuService,           │
+│    InteractionMenu, PluginService           │
+│                                             │
+│  Framework.World    — "what is happening"   │
+│    EntityRegistry, active map, weather,     │
+│    player state, Save/Load                  │
+│                                             │
+│  Framework.Data     — "what exists"         │
+│    Content definitions loaded from XML:     │
+│    vehicles, peds, maps, outfits, etc.      │
+│                                             │
 └───────────────────┬─────────────────────────┘
                     │ INativeFramework
 ┌───────────────────▼─────────────────────────┐
 │              Native Layer (Rph)              │
-│  RphNativeFramework, IUIService, etc.        │
+│  RphNativeFramework                         │
+│    UIService  — rendering and notifications │
+│    Lifecycle  — tick loop and controls      │
 │  The only project with RPH/GTA references   │
 └─────────────────────────────────────────────┘
 ```
 
 The `INativeFramework` interface is the primary testability seam. Tests construct `Framework` with a `FakeNativeFramework` instead of the RPH implementation.
+
+### Framework Sub-Objects
+
+| Sub-object | Motto | Contents |
+|---|---|---|
+| `Framework.Game` | How it works | Logger, Settings, MenuService, InteractionMenu, PluginService |
+| `Framework.World` | What is happening | Runtime entities, active map, weather, player state, Save/Load |
+| `Framework.Data` | What exists | Content definitions loaded from XML: vehicles, peds, maps, outfits |
+
+`INativeFramework` sits beneath all three and provides the raw native services (`UIService`, `Lifecycle`) they build on top of. UIService and Lifecycle are not part of Game, World, or Data — they are the substrate the Framework layer is built on.
 
 ### Deployment
 
@@ -94,9 +117,14 @@ Save files serialize **definitions**, not handles. On load, entities are re-regi
 
 See [Save/Load — Technical Design](../features/save-load/wip-technical-design.md).
 
-### Tick Manager
+### Lifecycle
 
-A central `TickManager` runs in a GameFiber yield loop and dispatches to registered `ITickable` systems each frame. Used for: spawn condition evaluation, streaming, ambient system updates.
+`INativeFramework.Lifecycle` (`INativeLifecycle`) is the Native layer interface that drives per-frame logic and player input. `RphLifecycleService` runs the GameFiber yield loop and fires events that Framework services subscribe to:
+
+- `Tick` — fires every frame. Used by InteractionMenu for rendering, and by future systems for spawn condition evaluation and streaming.
+- `ControlClicked`, `ControlHeld`, `ControlDoubleClicked` — derived from raw native press/release states and per-control timers. Controls are identified by `JmfControl` (a Core enum); `RphLifecycleService` maps `JmfControl` → RPH `GameControl` and is the single place where that mapping lives.
+
+Framework services subscribe to `Lifecycle` events directly; there is no `ITickable` registration pattern.
 
 ## Key Architectural Decisions
 
@@ -119,4 +147,5 @@ A central `TickManager` runs in a GameFiber yield loop and dispatches to registe
 8. **Worldspace is fiction; map is technical** — the fictional region and the GTA geometry it uses are separate concerns.
 9. **GTA VI portability** — the abstraction layer is the porting boundary; only RPH implementations get rewritten.
 10. **INativeFramework is the engine seam** — Framework (Core) depends only on this interface; all RPH/GTA calls flow through it.
-11. **PluginManager is a Framework concern** — the RPH entry point constructs INativeFramework and hands it to Framework; plugin registration and lifecycle are Core responsibilities.
+11. **PluginService is a Framework concern** — the RPH entry point constructs INativeFramework and hands it to Framework; plugin registration and lifecycle are Core responsibilities.
+12. **Game / World / Data** — Framework is organized into three sub-objects: Game (how it works), World (what is happening), and Data (what exists). UIService and Lifecycle are native substrate beneath all three.

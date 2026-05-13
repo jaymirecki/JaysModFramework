@@ -26,12 +26,12 @@ public interface IPlugin
 
 - `Initialize` is called once at framework startup, after core services are ready.
 - `Shutdown` is called when the framework is unloaded (e.g. RPH plugin unload).
-- Plugins should not start fibers or register tickables before `Initialize` is called.
+- Plugins should not subscribe to lifecycle events or start fibers before `Initialize` is called.
 
-## PluginRegistry
+## PluginManager
 
 ```csharp
-public class PluginRegistry
+public class PluginManager
 {
     private readonly List<IPlugin> _plugins = new();
 
@@ -43,7 +43,7 @@ public class PluginRegistry
 
 ### Registration Pattern
 
-Plugins self-register. Core plugins are registered inside the `Framework` constructor, not by the RPH entry point:
+Core plugins are registered inside the `Framework` constructor, not by the RPH entry point:
 
 ```csharp
 // Framework.cs (Core) — RPH entry point never touches plugin registration
@@ -52,7 +52,6 @@ public Framework(INativeFramework nativeFramework)
     // ... wire up services ...
     _pluginManager = new PluginManager();
     _pluginManager.Register(new SirenManagerPlugin());
-    // _pluginManager.Register(new VehicleSpawnerPlugin());
     _pluginManager.InitializeAll(this);
 }
 ```
@@ -67,81 +66,22 @@ Registration is explicit and compile-checked — no reflection, no assembly scan
 
 ## IFrameworkServices
 
-The service handle passed to each plugin on initialization:
+The service handle passed to each plugin on initialization. Exact surface is being designed for Step 3 (PluginService); the shape below is indicative and will be updated when the plugin system is built.
+
+`Framework` is organized into three sub-objects that plugins access through `IFrameworkServices`:
 
 ```csharp
 public interface IFrameworkServices
 {
-    ITickManager TickManager { get; }
-    IEntityRegistry EntityRegistry { get; }
-    IFiberService FiberService { get; }
-    IGameWorld GameWorld { get; }
+    GameServices Game { get; }   // Logger, Settings, MenuService, PluginService
+    WorldServices World { get; } // EntityRegistry, active map, player state
+    DataServices Data { get; }   // Content definitions loaded from XML
 }
 ```
 
-| Service | Purpose |
-|---|---|
-| `ITickManager` | Register per-frame tick logic |
-| `IEntityRegistry` | Access and manage framework entities |
-| `IFiberService` | Start background GameFibers |
-| `IGameWorld` | Query live game state (player vehicle, player position, etc.) |
+Plugins hold a reference to the services they need for the duration of their lifetime. Per-frame logic is implemented by subscribing to `Game.Lifecycle.Tick` — there is no `ITickable` registration pattern.
 
-Plugins hold a reference to the services they need for the duration of their lifetime.
-
-## ITickable and TickManager
-
-Per-frame logic is registered via `ITickable`:
-
-```csharp
-public interface ITickable
-{
-    void Tick();
-}
-
-public interface ITickManager
-{
-    void Register(ITickable tickable);
-    void Unregister(ITickable tickable);
-}
-```
-
-The `TickManager` implementation runs inside a GameFiber yield loop, calling `Tick()` on all registered `ITickable` instances each frame:
-
-```csharp
-// RPH implementation (conceptual)
-GameFiber.StartNew(() =>
-{
-    while (true)
-    {
-        foreach (var tickable in _tickables)
-            tickable.Tick();
-        GameFiber.Yield();
-    }
-});
-```
-
-Plugins register their tick implementations during `Initialize`:
-
-```csharp
-public void Initialize(IFrameworkServices services)
-{
-    _gameWorld = services.GameWorld;
-    services.TickManager.Register(new SirenManagerTick(this, services.GameWorld));
-}
-```
-
-## IGameWorld
-
-A minimal interface for querying live game state that is not managed by the entity registry:
-
-```csharp
-public interface IGameWorld
-{
-    IVehicle GetPlayerVehicle();   // null if player is on foot
-    bool IsPlayerInVehicle { get; }
-    // expand as additional systems require it
-}
-```
+Plugin controls use `JmfControl` (not RPH's `GameControl`) so Core plugins have no native dependency.
 
 ## Plugin Lifecycle
 
@@ -149,18 +89,18 @@ public interface IGameWorld
 Framework bootstrap
     │
     ▼
-PluginRegistry.Register(plugin) × N
+PluginManager.Register(plugin) × N
     │
     ▼
-PluginRegistry.InitializeAll(services)
+PluginManager.InitializeAll(services)
     │  └── plugin.Initialize(services) for each plugin
-    │      └── plugin registers ITickables, starts fibers, etc.
+    │      └── plugin subscribes to Lifecycle events, starts fibers, etc.
     │
     ▼
-TickManager running (GameFiber yield loop)
+RphLifecycleService running (GameFiber yield loop)
     │
     ▼ (RPH unload / game exit)
-PluginRegistry.ShutdownAll()
+PluginManager.ShutdownAll()
     └── plugin.Shutdown() for each plugin
 ```
 
@@ -168,15 +108,9 @@ PluginRegistry.ShutdownAll()
 
 The plugin system is fully testable in Core:
 
-- `FakeTickManager` records registered tickables and exposes them for assertion.
-- `FakeGameWorld` returns controlled values (e.g. a `FakeVehicle` as the player vehicle).
+- `FakeNativeFramework` provides a `FakeNativeLifecycle` that exposes methods to fire `Tick`, `ControlClicked`, `ControlHeld`, and `ControlDoubleClicked` events directly from tests.
 - `FakeFiberService.StartNew()` runs fibers synchronously.
 - Plugin `Initialize` can be called in tests with a fully fake `IFrameworkServices`.
-
-## Open Questions
-
-- **Tick ordering**: if multiple plugins register tickables, is order significant? If so, should `Register` accept a priority? Design TBD.
-- **Conditional tick registration**: should plugins be able to enable/disable their tickables at runtime, or should the `ITickable.Tick()` implementation handle its own guard logic?
 
 ## Related Documentation
 
