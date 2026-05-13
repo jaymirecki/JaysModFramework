@@ -23,6 +23,25 @@ internal sealed class InteractionMenuManager
     {
         _menu = new NativeMenu("JMF", "Interaction Menu");
         _pool.Add(_menu);
+
+        AddDebugSubmenu();
+
+        Log.Info("Interaction menu ready");
+    }
+
+    private void AddDebugSubmenu()
+    {
+        var debugMenu = new NativeMenu("JMF", "Debug");
+        _pool.Add(debugMenu);
+        _menu.AddSubMenu(debugMenu);
+
+        var logPosition = new NativeItem("Log Position", "Writes the player's current coordinates to the JMF log.");
+        logPosition.Activated += (_, _) =>
+        {
+            var pos = Game.LocalPlayer.Character.Position;
+            Log.Info($"Player position: X={pos.X:F2}, Y={pos.Y:F2}, Z={pos.Z:F2}");
+        };
+        debugMenu.Add(logPosition);
     }
 
     public void Tick()
@@ -37,6 +56,7 @@ internal sealed class InteractionMenuManager
             {
                 _menu.Visible = !_menu.Visible;
                 _holdTriggered = true;
+                Log.Debug($"Interaction menu {(_menu.Visible ? "opened" : "closed")}");
             }
         }
         else

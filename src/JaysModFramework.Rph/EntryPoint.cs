@@ -11,7 +11,9 @@ public static class EntryPoint
 {
     public static void Main()
     {
+        Log.Info("JMF initializing");
         var menu = new InteractionMenuManager();
+        Log.Info("JMF ready");
 
         while (true)
         {
@@ -22,5 +24,6 @@ public static class EntryPoint
 
     public static void OnUnload(bool isShuttingDown)
     {
+        Log.Info($"JMF unloading (shutting down: {isShuttingDown})");
     }
 }
