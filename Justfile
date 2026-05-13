@@ -15,7 +15,7 @@ run: pack
 
 [windows]
 run: pack
-    copy dist\JaysModFramework.Rph.dll "{{gta_dir}}\plugins\"
+    powershell -NoProfile -Command Copy-Item dist\JaysModFramework.Rph.dll '{{gta_dir}}\plugins\'
 
 test:
     dotnet test tests/JaysModFramework.Tests/JaysModFramework.Tests.csproj
