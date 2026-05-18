@@ -2,6 +2,7 @@
 
   <PropertyGroup>
     <TargetFramework>net48</TargetFramework>
+    <Nullable>disable</Nullable>
   </PropertyGroup>
 
   <ItemGroup>
@@ -11,6 +12,8 @@
     -->
     <PackageReference Include="RagePluginHook" Version="1.124.0" ExcludeAssets="runtime" />
     <PackageReference Include="LemonUI.RagePluginHook" Version="2.2.0" ExcludeAssets="runtime" />
+    <!-- Required for dynamic dispatch via NativeFunction.Natives -->
+    <Reference Include="Microsoft.CSharp" />
   </ItemGroup>
 
   <ItemGroup>

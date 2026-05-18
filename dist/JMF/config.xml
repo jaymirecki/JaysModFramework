@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<JmfConfig>
+  <Framework>
+    <!-- Enables the Debug submenu in the interaction menu. -->
+    <DebugMode>true</DebugMode>
+    <!-- Control that opens the JMF interaction menu. Default: CharacterWheel (Alt / D-pad down). -->
+    <MenuOpenControl>CharacterWheel</MenuOpenControl>
+  </Framework>
+  <Logger>
+    <!-- Path to the log file, relative to the GTA V root folder. -->
+    <LogLocation>JMF/JaysModFramework.log</LogLocation>
+    <!-- Minimum severity written to the log file. Values: Debug, Info, Warn, Error, None -->
+    <LogLevel>Debug</LogLevel>
+    <!-- Minimum severity shown as an in-game notification. Values: Debug, Info, Warn, Error, None -->
+    <NotificationLevel>Debug</NotificationLevel>
+  </Logger>
+  <Plugins>
+    <!-- Example plugin entry:
+    <Plugin name="SirenManager">
+      <DefaultActivatedStatus>true</DefaultActivatedStatus>
+    </Plugin>
+    -->
+  </Plugins>
+</JmfConfig>

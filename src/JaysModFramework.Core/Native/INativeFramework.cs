@@ -9,4 +9,5 @@ public interface INativeFramework
     /// <summary>Absolute path to the GTA V root directory.</summary>
     string GameDirectory { get; }
     INativeUIService UIService { get; }
+    INativeLifecycle Lifecycle { get; }
 }
