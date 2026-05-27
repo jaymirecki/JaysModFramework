@@ -1,0 +1,49 @@
+using JaysModFramework.Core.Game;
+
+namespace JaysModFramework.Core.UI.InteractionMenu;
+
+internal static class SmokeTestMenu
+{
+    internal static Menu Build(GameServices game)
+    {
+        var menu = game.MenuService.CreateMenu("JMF Smoke", "Smoke Test Menu");
+
+        var exampleItem = new MenuItem
+        {
+            Title = "Example Item",
+            Description = "Logs a debug message on activate and on select.",
+        };
+        exampleItem.OnActivated += () => game.Logger.Debug("Smoke: example item activated.");
+        exampleItem.OnSelected += () => game.Logger.Debug("Smoke: example item selected.");
+        menu.Add(exampleItem);
+
+        var subMenu = game.MenuService.CreateMenu("JMF Smoke", "Smoke Sub Menu");
+        var subItem = new MenuItem
+        {
+            Title = "Sub Item",
+            Description = "An item inside the smoke test sub-menu.",
+        };
+        subItem.OnActivated += () => game.Logger.Debug("Smoke: sub item activated.");
+        subItem.OnSelected += () => game.Logger.Debug("Smoke: sub item selected.");
+        subMenu.Add(subItem);
+        menu.AddSubmenu(subMenu);
+
+        var toggleItem = new MenuItem
+        {
+            Title = "Toggle Items Enabled",
+            Description = "Toggles the Enabled state of all other items in this menu.",
+        };
+        toggleItem.OnActivated += () =>
+        {
+            foreach (var item in menu.Items)
+            {
+                if (item != toggleItem)
+                    item.Enabled = !item.Enabled;
+            }
+            game.MenuService.RefreshMenu();
+        };
+        menu.Add(toggleItem);
+
+        return menu;
+    }
+}

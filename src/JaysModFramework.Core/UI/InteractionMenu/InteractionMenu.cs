@@ -1,7 +1,7 @@
+using JaysModFramework.Core.Game;
 using JaysModFramework.Core.Native;
-using JaysModFramework.Core.UI;
 
-namespace JaysModFramework.Core.Game;
+namespace JaysModFramework.Core.UI.InteractionMenu;
 
 public class InteractionMenu
 {
@@ -27,19 +27,7 @@ public class InteractionMenu
         var root = _game.MenuService.CreateMenu("JMF", "Interaction Menu");
 
         if (_game.Settings.Framework.DebugMode)
-        {
-            var debug = _game.MenuService.CreateMenu("JMF", "Debug");
-
-            var showPos = new MenuItem { Title = "Show Position", Description = "Log the player's current position." };
-            showPos.OnSelected += () => _game.Logger.Info("Player position: X=0.00, Y=0.00, Z=0.00");
-
-            var logModel = new MenuItem { Title = "Log Current Model", Description = "Log the player's current model name." };
-            logModel.OnSelected += () => _game.Logger.Info("Current model: player_zero");
-
-            debug.Add(showPos);
-            debug.Add(logModel);
-            root.AddSubmenu(debug);
-        }
+            root.AddSubmenu(DebugMenu.Build(_game));
 
         return root;
     }

@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+using System;
 using JaysModFramework.Core.Native;
 using JaysModFramework.Core.UI;
 using LemonUI;
@@ -11,37 +11,51 @@ namespace JaysModFramework.Rph.Native;
 internal sealed class RphUIService : INativeUIService
 {
     private readonly ObjectPool _pool = new ObjectPool();
-    private readonly Dictionary<Menu, NativeMenu> _nativeMenus = new Dictionary<Menu, NativeMenu>();
-    private NativeMenu _currentNativeMenu;
+    private readonly NativeMenu _nativeMenu;
+    private bool _suppressClosingEvent;
+
+    public event Action BackPressed;
+
+    public RphUIService()
+    {
+        _nativeMenu = new NativeMenu("JMF", "");
+        _pool.Add(_nativeMenu);
+        _nativeMenu.Closing += (sender, args) =>
+        {
+            if (_suppressClosingEvent) return;
+            args.Cancel = true;
+            BackPressed?.Invoke();
+        };
+    }
 
     public void Notify(string message) => Game.DisplayNotification(message);
 
-    public void RegisterMenu(Menu menu)
+    public int SelectedIndex => _nativeMenu.SelectedIndex;
+
+    public void ShowMenu(Menu menu, int selectedIndex = 0, string bannerText = null)
     {
-        var nativeMenu = new NativeMenu(menu.BannerText, menu.Title);
-        _nativeMenus[menu] = nativeMenu;
-        _pool.Add(nativeMenu);
+        _nativeMenu.BannerText.Text = bannerText ?? string.Empty;
+        _nativeMenu.Name = menu.Title;
+        _nativeMenu.Clear();
+
+        foreach (var item in menu.Items)
+        {
+            var nativeItem = new NativeItem(item.Title, item.Description);
+            nativeItem.Enabled = item.Enabled;
+            nativeItem.Activated += (sender, args) => item.RaiseActivated();
+            nativeItem.Selected += (sender, args) => item.RaiseSelected();
+            _nativeMenu.Add(nativeItem);
+        }
+
+        _nativeMenu.SelectedIndex = Math.Max(0, Math.Min(selectedIndex, menu.Items.Count - 1));
+        _nativeMenu.Visible = true;
     }
 
-    public void ShowMenu(Menu menu)
+    public void HideMenu()
     {
-        SyncMenu(menu);
-        var nativeMenu = _nativeMenus[menu];
-        _currentNativeMenu = nativeMenu;
-        nativeMenu.Visible = true;
-    }
-
-    public void HideCurrentMenu()
-    {
-        if (_currentNativeMenu != null)
-            _currentNativeMenu.Visible = false;
-        _currentNativeMenu = null;
-    }
-
-    public void Back()
-    {
-        if (_currentNativeMenu != null)
-            _currentNativeMenu.Back();
+        _suppressClosingEvent = true;
+        _nativeMenu.Visible = false;
+        _suppressClosingEvent = false;
     }
 
     public void ProcessFrame() => _pool.Process();
@@ -53,35 +67,5 @@ internal sealed class RphUIService : INativeUIService
         NativeFunction.CallByHash<int>(0xFE99B66D079CF6BC, 2, (int)GameControl.CharacterWheel, true);
     }
 
-    private void SyncMenu(Menu menu)
-    {
-        var nativeMenu = _nativeMenus[menu];
-        nativeMenu.Clear();
 
-        foreach (var item in menu.Items)
-        {
-            if (item.LinkedSubmenu != null)
-            {
-                if (!_nativeMenus.ContainsKey(item.LinkedSubmenu))
-                    RegisterMenu(item.LinkedSubmenu);
-                SyncMenu(item.LinkedSubmenu);
-
-                var subNativeMenu = _nativeMenus[item.LinkedSubmenu];
-                subNativeMenu.Parent = nativeMenu;
-                var subItem = new NativeItem(item.Title, item.Description);
-                subItem.Activated += (sender, args) =>
-                {
-                    nativeMenu.Visible = false;
-                    subNativeMenu.Visible = true;
-                };
-                nativeMenu.Add(subItem);
-            }
-            else
-            {
-                var nativeItem = new NativeItem(item.Title, item.Description);
-                nativeItem.Activated += (sender, args) => item.RaiseSelected();
-                nativeMenu.Add(nativeItem);
-            }
-        }
-    }
 }

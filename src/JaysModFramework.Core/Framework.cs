@@ -1,5 +1,6 @@
 using JaysModFramework.Core.Game;
 using JaysModFramework.Core.Native;
+using JaysModFramework.Core.UI.InteractionMenu;
 
 namespace JaysModFramework.Core;
 
