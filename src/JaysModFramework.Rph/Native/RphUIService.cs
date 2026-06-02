@@ -40,11 +40,24 @@ internal sealed class RphUIService : INativeUIService
 
         foreach (var item in menu.Items)
         {
-            var nativeItem = new NativeItem(item.Title, item.Description);
-            nativeItem.Enabled = item.Enabled;
-            nativeItem.Activated += (sender, args) => item.RaiseActivated();
-            nativeItem.Selected += (sender, args) => item.RaiseSelected();
-            _nativeMenu.Add(nativeItem);
+            if (item is IMenuListItem listItem)
+            {
+                var nativeListItem = new NativeListItem<string>(item.Title, item.Description, listItem.DisplayItems.ToArray());
+                nativeListItem.Enabled = item.Enabled;
+                nativeListItem.SelectedIndex = listItem.SelectedIndex;
+                nativeListItem.ItemChanged += (sender, args) => listItem.RaiseItemChanged(args.Index);
+                nativeListItem.Activated += (sender, args) => item.RaiseActivated();
+                nativeListItem.Selected += (sender, args) => item.RaiseSelected();
+                _nativeMenu.Add(nativeListItem);
+            }
+            else
+            {
+                var nativeItem = new NativeItem(item.Title, item.Description);
+                nativeItem.Enabled = item.Enabled;
+                nativeItem.Activated += (sender, args) => item.RaiseActivated();
+                nativeItem.Selected += (sender, args) => item.RaiseSelected();
+                _nativeMenu.Add(nativeItem);
+            }
         }
 
         _nativeMenu.SelectedIndex = Math.Max(0, Math.Min(selectedIndex, menu.Items.Count - 1));

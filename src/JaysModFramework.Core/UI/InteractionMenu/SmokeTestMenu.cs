@@ -28,6 +28,15 @@ internal static class SmokeTestMenu
         subMenu.Add(subItem);
         menu.AddSubmenu(subMenu);
 
+        var listItem = new MenuListItem<string>(new[] { "Alpha", "Bravo", "Charlie" })
+        {
+            Title = "List Item",
+            Description = "Cycles through options. Logs selection on activate.",
+        };
+        listItem.OnItemChanged += val => game.Logger.Debug($"Smoke: list item changed to '{val}'.");
+        listItem.OnActivated += () => game.Logger.Debug($"Smoke: list item activated with '{listItem.SelectedItem}'.");
+        menu.Add(listItem);
+
         var toggleItem = new MenuItem
         {
             Title = "Toggle Items Enabled",
