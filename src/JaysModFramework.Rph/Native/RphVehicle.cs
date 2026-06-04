@@ -3,22 +3,13 @@ using Rage;
 
 namespace JaysModFramework.Rph.Native;
 
-internal sealed class RphVehicle : IVehicle
+internal sealed class RphVehicle : RphEntity, IVehicle
 {
     private readonly Vehicle _vehicle;
 
-    internal RphVehicle(Vehicle vehicle) => _vehicle = vehicle;
+    internal RphVehicle(Vehicle vehicle) : base(vehicle) => _vehicle = vehicle;
 
     public bool HasSirens => _vehicle.HasSiren;
-
-    public bool Equals(IVehicle other) => other is RphVehicle rph && _vehicle == rph._vehicle;
-    public override bool Equals(object obj) => obj is IVehicle v && Equals(v);
-    public override int GetHashCode() => _vehicle.GetHashCode();
-
-    public static bool operator ==(RphVehicle left, RphVehicle right)
-        => left is null ? right is null : left.Equals(right);
-    public static bool operator !=(RphVehicle left, RphVehicle right)
-        => !(left == right);
 
     public SirenState SirenState
     {
@@ -48,4 +39,12 @@ internal sealed class RphVehicle : IVehicle
             }
         }
     }
+
+    public override bool Equals(object obj) => base.Equals(obj);
+    public override int GetHashCode() => base.GetHashCode();
+
+    public static bool operator ==(RphVehicle left, RphVehicle right)
+        => left is null ? right is null : left.Equals(right);
+    public static bool operator !=(RphVehicle left, RphVehicle right)
+        => !(left == right);
 }

@@ -1,8 +1,6 @@
-using System;
-
 namespace JaysModFramework.Core.World;
 
-public interface IVehicle : IEquatable<IVehicle>
+public interface IVehicle : IEntity
 {
     bool HasSirens { get; }
     SirenState SirenState { get; set; }
