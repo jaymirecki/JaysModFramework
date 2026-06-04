@@ -12,6 +12,7 @@ internal abstract class RphEntity : IEntity
 
     public Vector3 Position => new Vector3(_entity.Position.X, _entity.Position.Y, _entity.Position.Z);
     public float Heading => _entity.Heading;
+    public string ModelName => _entity.Model.Name;
 
     public bool Equals(IEntity other) => other is RphEntity rph && _entity == rph._entity;
     public override bool Equals(object obj) => obj is IEntity e && Equals(e);

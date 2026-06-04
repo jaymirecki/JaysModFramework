@@ -1,10 +1,11 @@
 using JaysModFramework.Core.Game;
+using JaysModFramework.Core.World;
 
 namespace JaysModFramework.Core.UI.InteractionMenu;
 
 internal static class DebugMenu
 {
-    internal static Menu Build(GameServices game)
+    internal static Menu Build(GameServices game, IGameWorld world)
     {
         var menu = new Menu { BannerText = "JMF", Title = "Debug" };
 
@@ -13,14 +14,25 @@ internal static class DebugMenu
             Title = "Show Position",
             Description = "Log the player's current position to the JMF log.",
         };
-        showPos.OnActivated += () => game.Logger.Info("Player position: X=0.00, Y=0.00, Z=0.00");
+        showPos.OnActivated += () =>
+        {
+            var ped = world.Player.Ped;
+            var entity = (IEntity)(ped.Vehicle ?? (IEntity)ped);
+            var pos = entity.Position;
+            game.Logger.Debug($"Position: X={pos.X:F2}, Y={pos.Y:F2}, Z={pos.Z:F2}");
+        };
 
         var logModel = new MenuItem
         {
             Title = "Log Current Model",
             Description = "Log the player's current model name to the JMF log.",
         };
-        logModel.OnActivated += () => game.Logger.Info("Current model: player_zero");
+        logModel.OnActivated += () =>
+        {
+            var ped = world.Player.Ped;
+            var entity = (IEntity)(ped.Vehicle ?? (IEntity)ped);
+            game.Logger.Debug($"Model: {entity.ModelName}");
+        };
 
         menu.Add(showPos);
         menu.Add(logModel);

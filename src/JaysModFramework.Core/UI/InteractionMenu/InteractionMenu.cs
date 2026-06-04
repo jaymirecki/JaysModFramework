@@ -1,12 +1,14 @@
 using JaysModFramework.Core.Game;
 using JaysModFramework.Core.Native;
 using JaysModFramework.Core.Plugins;
+using JaysModFramework.Core.World;
 
 namespace JaysModFramework.Core.UI.InteractionMenu;
 
 public class InteractionMenu
 {
     private readonly GameServices _game;
+    private readonly IGameWorld _world;
     private readonly INativeLifecycle _lifecycle;
     private readonly INativeUIService _uiService;
     private readonly Menu _rootMenu;
@@ -14,6 +16,7 @@ public class InteractionMenu
     internal InteractionMenu(Framework framework)
     {
         _game = framework.Game;
+        _world = framework.World;
         _lifecycle = framework.NativeFramework.Lifecycle;
         _uiService = framework.NativeFramework.UIService;
 
@@ -28,7 +31,7 @@ public class InteractionMenu
         var root = new Menu { BannerText = "JMF", Title = "Interaction Menu" };
 
         if (_game.Settings.Framework.DebugMode)
-            root.AddSubmenu(DebugMenu.Build(_game));
+            root.AddSubmenu(DebugMenu.Build(_game, _world));
 
         var pluginsMenu = new Menu { BannerText = "JMF", Title = "Plugins" };
         foreach (var plugin in _game.PluginManager.Plugins)
