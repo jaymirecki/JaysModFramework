@@ -1,5 +1,6 @@
 using JaysModFramework.Core.Game;
 using JaysModFramework.Core.Native;
+using JaysModFramework.Core.Plugins;
 
 namespace JaysModFramework.Core.UI.InteractionMenu;
 
@@ -28,6 +29,15 @@ public class InteractionMenu
 
         if (_game.Settings.Framework.DebugMode)
             root.AddSubmenu(DebugMenu.Build(_game));
+
+        var pluginsMenu = _game.MenuService.CreateMenu("JMF", "Plugins");
+        foreach (var plugin in _game.PluginManager.Plugins)
+        {
+            if (plugin is IMenuPlugin menuPlugin)
+                pluginsMenu.AddSubmenu(menuPlugin.GetMenu());
+        }
+        if (pluginsMenu.Items.Count > 0)
+            root.AddSubmenu(pluginsMenu);
 
         return root;
     }

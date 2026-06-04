@@ -1,3 +1,5 @@
+using JaysModFramework.Core.World;
+
 namespace JaysModFramework.Core.Native;
 
 /// <summary>
@@ -10,4 +12,5 @@ public interface INativeFramework
     string GameDirectory { get; }
     INativeUIService UIService { get; }
     INativeLifecycle Lifecycle { get; }
+    IGameWorld World { get; }
 }

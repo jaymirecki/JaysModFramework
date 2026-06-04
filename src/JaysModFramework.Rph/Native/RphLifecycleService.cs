@@ -16,6 +16,7 @@ internal sealed class RphLifecycleService : INativeLifecycle
         new Dictionary<JmfControl, GameControl>
         {
             [JmfControl.InteractionMenu] = GameControl.InteractionMenu,
+            [JmfControl.SirenCycle]      = GameControl.VehicleHorn,
         };
 
     private static readonly Dictionary<JmfControl, GameControl> DisabledControlMap =

@@ -4,4 +4,5 @@ public enum JmfControl
 {
     InteractionMenu,
     CharacterWheel,
+    SirenCycle,
 }
