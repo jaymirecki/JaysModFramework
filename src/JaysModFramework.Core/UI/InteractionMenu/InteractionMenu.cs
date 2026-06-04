@@ -25,16 +25,16 @@ public class InteractionMenu
 
     private Menu BuildMenus()
     {
-        var root = _game.MenuService.CreateMenu("JMF", "Interaction Menu");
+        var root = new Menu { BannerText = "JMF", Title = "Interaction Menu" };
 
         if (_game.Settings.Framework.DebugMode)
             root.AddSubmenu(DebugMenu.Build(_game));
 
-        var pluginsMenu = _game.MenuService.CreateMenu("JMF", "Plugins");
+        var pluginsMenu = new Menu { BannerText = "JMF", Title = "Plugins" };
         foreach (var plugin in _game.PluginManager.Plugins)
         {
-            if (plugin is IMenuPlugin menuPlugin)
-                pluginsMenu.AddSubmenu(menuPlugin.GetMenu());
+            if (plugin is MenuPlugin menuPlugin)
+                pluginsMenu.AddSubmenu(menuPlugin.Menu);
         }
         if (pluginsMenu.Items.Count > 0)
             root.AddSubmenu(pluginsMenu);

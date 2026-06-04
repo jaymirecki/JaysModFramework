@@ -6,7 +6,7 @@ internal static class SmokeTestMenu
 {
     internal static Menu Build(GameServices game)
     {
-        var menu = game.MenuService.CreateMenu("JMF Smoke", "Smoke Test Menu");
+        var menu = new Menu { BannerText = "JMF Smoke", Title = "Smoke Test Menu" };
 
         var exampleItem = new MenuItem
         {
@@ -17,7 +17,7 @@ internal static class SmokeTestMenu
         exampleItem.OnSelected += () => game.Logger.Debug("Smoke: example item selected.");
         menu.Add(exampleItem);
 
-        var subMenu = game.MenuService.CreateMenu("JMF Smoke", "Smoke Sub Menu");
+        var subMenu = new Menu { BannerText = "JMF Smoke", Title = "Smoke Sub Menu" };
         var subItem = new MenuItem
         {
             Title = "Sub Item",

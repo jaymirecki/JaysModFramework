@@ -6,7 +6,7 @@ internal static class DebugMenu
 {
     internal static Menu Build(GameServices game)
     {
-        var menu = game.MenuService.CreateMenu("JMF", "Debug");
+        var menu = new Menu { BannerText = "JMF", Title = "Debug" };
 
         var showPos = new MenuItem
         {

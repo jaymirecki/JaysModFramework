@@ -18,11 +18,6 @@ public class MenuService
         _uiService.BackPressed += OnBackPressed;
     }
 
-    public Menu CreateMenu(string bannerText, string title)
-    {
-        return new Menu { BannerText = bannerText, Title = title };
-    }
-
     public void ShowMenu(Menu menu)
     {
         _bannerText = menu.BannerText ?? string.Empty;

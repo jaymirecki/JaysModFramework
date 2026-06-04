@@ -11,7 +11,7 @@ public class Menu
     public string Description { get; set; } = string.Empty;
     public IReadOnlyList<MenuItem> Items => _items;
 
-    internal Menu() { }
+    public Menu() { }
 
     public void Add(MenuItem item) => _items.Add(item);
     public void Remove(MenuItem item) => _items.Remove(item);

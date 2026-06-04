@@ -5,22 +5,19 @@ using JaysModFramework.Core.World;
 
 namespace JaysModFramework.Core.Plugins.Sirens;
 
-public class SirenManagerPlugin : IMenuPlugin
+public class SirenManagerPlugin : MenuPlugin
 {
     private GameServices _game;
     private IGameWorld _world;
     private IVehicle _currentVehicle;
     private SirenState _sirenState = SirenState.Off;
-    private MenuListItem<SirenState> _sirenListItem;
-    private Menu _menu;
+    private readonly MenuListItem<SirenState> _sirenListItem;
 
-    public string Name => "Siren Manager";
+    public override string Name => "Siren Manager";
 
-    public void Initialize(IFrameworkServices services)
+    public SirenManagerPlugin()
     {
-        _game = services.Game;
-        _world = services.World;
-
+        MenuTitle = "Siren Manager";
         _sirenListItem = new MenuListItem<SirenState>(new[] { SirenState.Off, SirenState.On, SirenState.LightsOnly })
         {
             Title = "Mode",
@@ -28,17 +25,19 @@ public class SirenManagerPlugin : IMenuPlugin
             Enabled = false,
         };
         _sirenListItem.OnItemChanged += OnSirenItemChanged;
+        Menu.Add(_sirenListItem);
+    }
 
-        _menu = services.Game.MenuService.CreateMenu("JMF", "Siren Manager");
-        _menu.Add(_sirenListItem);
+    public override void Initialize(IFrameworkServices services)
+    {
+        _game = services.Game;
+        _world = services.World;
 
         _game.Lifecycle.Tick += OnTick;
         _game.Lifecycle.ControlClicked += OnControlClicked;
     }
 
-    public Menu GetMenu() => _menu;
-
-    public void Shutdown()
+    public override void Shutdown()
     {
         _game.Lifecycle.Tick -= OnTick;
         _game.Lifecycle.ControlClicked -= OnControlClicked;
