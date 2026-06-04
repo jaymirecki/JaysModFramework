@@ -9,10 +9,9 @@ public class SirenManagerPlugin : IMenuPlugin
 {
     private GameServices _game;
     private IGameWorld _world;
-    private bool _hasVehicle;
-    private IVehicle _currentVehicle = null;
-    private SirenState _currentSirenState = SirenState.Off;
-    private MenuItem _modeLabel;
+    private IVehicle _currentVehicle;
+    private SirenState _sirenState = SirenState.Off;
+    private MenuListItem<SirenState> _sirenListItem;
     private Menu _menu;
 
     public string Name => "Siren Manager";
@@ -21,25 +20,17 @@ public class SirenManagerPlugin : IMenuPlugin
     {
         _game = services.Game;
         _world = services.World;
-        _hasVehicle = false;
 
-        _modeLabel = new MenuItem
+        _sirenListItem = new MenuListItem<SirenState>(new[] { SirenState.Off, SirenState.On, SirenState.LightsOnly })
         {
-            Title = ModeTitle(null),
-            Description = "Current siren mode. Use the siren cycle key to change.",
+            Title = "Mode",
+            Description = "Current siren mode. Use the siren cycle key or left/right to change.",
             Enabled = false,
         };
-
-        var cycleItem = new MenuItem
-        {
-            Title = "Cycle Mode",
-            Description = "Advance to the next siren mode.",
-        };
-        cycleItem.OnActivated += CycleMode;
+        _sirenListItem.OnItemChanged += OnSirenItemChanged;
 
         _menu = services.Game.MenuService.CreateMenu("JMF", "Siren Manager");
-        _menu.Add(_modeLabel);
-        _menu.Add(cycleItem);
+        _menu.Add(_sirenListItem);
 
         _game.Lifecycle.Tick += OnTick;
         _game.Lifecycle.ControlClicked += OnControlClicked;
@@ -56,69 +47,72 @@ public class SirenManagerPlugin : IMenuPlugin
     private void OnTick()
     {
         var vehicle = _world.GetPlayerVehicle();
-        if (!Equals(vehicle, _currentVehicle))
+        if (Equals(vehicle, _currentVehicle)) return;
+
+        _currentVehicle = vehicle;
+        var hasSirens = vehicle != null && vehicle.HasSirens;
+        _sirenListItem.Enabled = hasSirens;
+
+        if (hasSirens)
         {
-            _currentVehicle = vehicle;
-            var inVehicle = vehicle != null && vehicle.HasSirens;
-            if (vehicle == null) {
-                _game.Logger.Debug($"Leaving siren vehicle");
-            }
-            else {
-                _currentSirenState = vehicle.SirenState;
-                _game.Logger.Debug($"Entered siren vehicle, current state: {_currentSirenState}");
-            }
-            _hasVehicle = inVehicle;
-            UpdateLabel(vehicle);
+            SetSirenState(vehicle.SirenState);
+            _game.Logger.Debug($"Entered siren vehicle, current state: {_sirenState}");
         }
+        else
+        {
+            SetSirenState(SirenState.Off);
+            if (vehicle == null)
+                _game.Logger.Debug("Leaving siren vehicle");
+        }
+
+        if (_game.MenuService.IsVisible)
+            _game.MenuService.RefreshMenu();
     }
 
     private void OnControlClicked(JmfControl control)
     {
         if (control != JmfControl.SirenCycle) return;
-        var vehicle = _world.GetPlayerVehicle();
+        var vehicle = _currentVehicle;
         if (vehicle == null || !vehicle.HasSirens) return;
-        CycleMode(vehicle);
-    }
 
-    private void CycleMode()
-    {
-        var vehicle = _world.GetPlayerVehicle();
-        if (vehicle == null || !vehicle.HasSirens) return;
-        CycleMode(vehicle);
-    }
-
-    private void CycleMode(IVehicle vehicle)
-    {
-        var previous = _currentSirenState;
-        var next = previous switch
+        var next = _sirenState switch
         {
             SirenState.Off        => SirenState.On,
             SirenState.On         => SirenState.LightsOnly,
             SirenState.LightsOnly => SirenState.Off,
             _                     => SirenState.Off,
         };
-        vehicle.SirenState = next;
-        _game.Logger.Debug(
-            $"Siren: {previous} → {next} " +
-            $"(lights: {LightsState(previous)}→{LightsState(next)}, " +
-            $"sound: {SoundState(previous)}→{SoundState(next)})");
-        _currentSirenState = next;
-        UpdateLabel(vehicle);
+        SetSirenState(next);
+        ApplyState(vehicle);
     }
 
-    private static string LightsState(SirenState state) => state == SirenState.Off ? "off" : "on";
-    private static string SoundState(SirenState state) => state == SirenState.On ? "on" : "off";
-
-    private void UpdateLabel(IVehicle vehicle)
+    private void OnSirenItemChanged(SirenState state)
     {
-        _modeLabel.Title = ModeTitle(vehicle);
+        var vehicle = _currentVehicle;
+        if (vehicle == null || !vehicle.HasSirens) return;
+        _sirenState = state;
+        ApplyState(vehicle);
+    }
+
+    private void SetSirenState(SirenState state)
+    {
+        _sirenState = state;
+        _sirenListItem.SelectedIndex = (int)_sirenState;
+    }
+
+    private void ApplyState(IVehicle vehicle)
+    {
+        var previous = vehicle.SirenState;
+        vehicle.SirenState = _sirenState;
+        _game.Logger.Debug(
+            $"Siren: {previous} → {_sirenState} " +
+            $"(lights: {LightsState(previous)}→{LightsState(_sirenState)}, " +
+            $"sound: {SoundState(previous)}→{SoundState(_sirenState)})");
+
         if (_game.MenuService.IsVisible)
             _game.MenuService.RefreshMenu();
     }
 
-    private static string ModeTitle(IVehicle vehicle)
-    {
-        if (vehicle == null) return "Mode: N/A";
-        return $"Mode: {vehicle.SirenState}";
-    }
+    private static string LightsState(SirenState state) => state == SirenState.Off ? "off" : "on";
+    private static string SoundState(SirenState state) => state == SirenState.On ? "on" : "off";
 }

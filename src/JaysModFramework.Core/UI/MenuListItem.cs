@@ -10,7 +10,7 @@ public class MenuListItem<T> : MenuItem, IMenuListItem
     private int _selectedIndex;
 
     public IReadOnlyList<T> Items => _items;
-    public int SelectedIndex => _selectedIndex;
+    public int SelectedIndex { get => _selectedIndex; set => _selectedIndex = value; }
     public T SelectedItem => _items.Count > 0 ? _items[_selectedIndex] : default;
 
     public event Action<T> OnItemChanged;
