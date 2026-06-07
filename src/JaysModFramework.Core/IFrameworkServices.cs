@@ -1,3 +1,4 @@
+using JaysModFramework.Core.Data;
 using JaysModFramework.Core.Game;
 using JaysModFramework.Core.World;
 
@@ -8,4 +9,5 @@ public interface IFrameworkServices
 {
     GameServices Game { get; }
     IGameWorld World { get; }
+    FrameworkData Data { get; }
 }

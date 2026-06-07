@@ -9,7 +9,7 @@ public class SirenManagerPlugin : MenuPlugin
 {
     private GameServices _game;
     private IGameWorld _world;
-    private IVehicle _currentVehicle;
+    private Vehicle _currentVehicle;
     private SirenState _sirenState = SirenState.Off;
     private readonly MenuListItem<SirenState> _sirenListItem;
 
@@ -99,7 +99,7 @@ public class SirenManagerPlugin : MenuPlugin
         _sirenListItem.SelectedIndex = (int)_sirenState;
     }
 
-    private void ApplyState(IVehicle vehicle)
+    private void ApplyState(Vehicle vehicle)
     {
         var previous = vehicle.SirenState;
         vehicle.SirenState = _sirenState;

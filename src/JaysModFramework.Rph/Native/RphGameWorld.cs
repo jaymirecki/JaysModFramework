@@ -1,8 +1,40 @@
 using JaysModFramework.Core.World;
+using Rage;
+using CorePlayer = JaysModFramework.Core.World.Player;
+using CoreVehicle = JaysModFramework.Core.World.Vehicle;
+using Vector3 = JaysModFramework.Core.Vector3;
 
 namespace JaysModFramework.Rph.Native;
 
 internal sealed class RphGameWorld : IGameWorld
 {
-    public IPlayer Player => new RphPlayer();
+    private readonly EntityRegistry _registry;
+    private readonly IPlayer _player;
+
+    internal RphGameWorld(EntityRegistry registry)
+    {
+        _registry = registry;
+        _player = new CorePlayer(() => new RphPed(Game.LocalPlayer.Character), registry);
+    }
+
+    public IPlayer Player => _player;
+
+    public CoreVehicle SpawnVehicle(string modelName, Vector3 position, float heading)
+    {
+        var ragePosition = new Rage.Vector3(position.X, position.Y, position.Z);
+
+        var model = new Model(modelName);
+        model.LoadAndWait();
+
+        var rageVehicle = new Rage.Vehicle(model, ragePosition, heading);
+        var native = new RphVehicle(rageVehicle);
+
+        var persistent = PersistentVehicle.From(native);
+        var vehicle = new CoreVehicle(persistent, VehicleCustody.PlayerOwned);
+        vehicle.Attach(native);
+        _registry.Register(vehicle);
+        _registry.AddToSpawnedRegistry(native.Handle, vehicle);
+
+        return vehicle;
+    }
 }

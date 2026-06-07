@@ -1,13 +1,15 @@
 using JaysModFramework.Core.World;
-using Rage;
+using RageVehicle = Rage.Vehicle;
 
 namespace JaysModFramework.Rph.Native;
 
-internal sealed class RphVehicle : RphEntity, IVehicle
+internal sealed class RphVehicle : RphEntity, INativeVehicle
 {
-    private readonly Vehicle _vehicle;
+    private readonly RageVehicle _vehicle;
 
-    internal RphVehicle(Vehicle vehicle) : base(vehicle) => _vehicle = vehicle;
+    internal RphVehicle(RageVehicle vehicle) : base(vehicle) => _vehicle = vehicle;
+
+    internal RageVehicle NativeVehicle => _vehicle;
 
     public bool HasSirens => _vehicle.HasSiren;
 

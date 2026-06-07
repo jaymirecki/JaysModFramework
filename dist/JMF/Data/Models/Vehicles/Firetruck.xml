@@ -1,0 +1,5 @@
+<VehicleModelDefinition>
+  <Name>Fire Truck</Name>
+  <ModelName>firetruk</ModelName>
+  <Class>Emergency</Class>
+</VehicleModelDefinition>

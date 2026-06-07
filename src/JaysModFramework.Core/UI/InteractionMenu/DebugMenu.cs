@@ -17,7 +17,7 @@ internal static class DebugMenu
         showPos.OnActivated += () =>
         {
             var ped = world.Player.Ped;
-            var entity = (IEntity)(ped.Vehicle ?? (IEntity)ped);
+            Entity entity = ped.Vehicle as Entity ?? ped;
             var pos = entity.Position;
             game.Logger.Debug($"Position: X={pos.X:F2}, Y={pos.Y:F2}, Z={pos.Z:F2}");
         };
@@ -30,7 +30,7 @@ internal static class DebugMenu
         logModel.OnActivated += () =>
         {
             var ped = world.Player.Ped;
-            var entity = (IEntity)(ped.Vehicle ?? (IEntity)ped);
+            Entity entity = ped.Vehicle as Entity ?? ped;
             game.Logger.Debug($"Model: {entity.ModelName}");
         };
 

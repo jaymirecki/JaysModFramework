@@ -1,0 +1,5 @@
+<VehicleModelDefinition>
+  <Name>Ambulance</Name>
+  <ModelName>ambulance</ModelName>
+  <Class>Emergency</Class>
+</VehicleModelDefinition>
