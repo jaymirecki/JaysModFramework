@@ -3,9 +3,9 @@ using System;
 namespace JaysModFramework.Core.World;
 
 /// <summary>
-/// Abstract base for all framework-managed entities. Holds the live native
-/// reference (<see cref="Native"/>) and a stable <see cref="Id"/>. Subclasses
-/// provide property fallbacks for when the entity is unspawned.
+/// Abstract base for all framework-managed entities. Holds the live native reference
+/// (<see cref="Native"/>) and a stable <see cref="Id"/>. Equality is by <see cref="Id"/>
+/// so that the same entity compares equal across any number of managed wrapper instances.
 /// </summary>
 public abstract class Entity : IManagedEntity
 {
@@ -19,12 +19,12 @@ public abstract class Entity : IManagedEntity
     public abstract float Heading { get; }
     public abstract string ModelName { get; }
 
-    public bool Equals(INativeEntity other)
+    public bool Equals(IManagedEntity other)
     {
-        if (other is Entity managed) return Id == managed.Id;
-        return IsSpawned && Handle == other.Handle;
+        if (other is null) return false;
+        return Id == other.Id;
     }
 
-    public override bool Equals(object obj) => obj is INativeEntity e && Equals(e);
+    public override bool Equals(object obj) => obj is IManagedEntity e && Equals(e);
     public override int GetHashCode() => Id.GetHashCode();
 }

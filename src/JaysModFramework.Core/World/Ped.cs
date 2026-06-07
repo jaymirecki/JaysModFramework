@@ -33,11 +33,9 @@ public class Ped : Entity, IManagedPed
             var native = _nativePed.Vehicle;
             if (native == null) return null;
 
-            // Return the existing managed vehicle if already registered.
             if (_registry.TryGetByHandle(native.Handle, out var managed))
                 return managed;
 
-            // Ambient vehicle encountered for the first time — snapshot and register.
             var persistent = PersistentVehicle.From(native);
             var vehicle = new Vehicle(persistent, VehicleCustody.MapOwned);
             vehicle.Attach(native);
@@ -47,16 +45,9 @@ public class Ped : Entity, IManagedPed
         }
     }
 
-    // Explicit implementations satisfy base interfaces for callers holding IManagedPed or INativePed.
-    IManagedVehicle? IManagedPed.Vehicle => Vehicle;
-    INativeVehicle? INativePed.Vehicle => Vehicle;
-
-    public void WarpIntoVehicle(Vehicle vehicle, VehicleSeat seat) {
-        if (!vehicle.IsSpawned) return;
-        _nativePed.WarpIntoVehicle(vehicle.NativeVehicle, seat);
-    }
-
-    public void WarpIntoVehicle(INativeVehicle vehicle, VehicleSeat seat) {
-        _nativePed.WarpIntoVehicle(vehicle, seat);
+    public void WarpIntoVehicle(IManagedVehicle vehicle, VehicleSeat seat)
+    {
+        if (vehicle is Vehicle v && v.NativeVehicle != null)
+            _nativePed.WarpIntoVehicle(v.NativeVehicle, seat);
     }
 }
