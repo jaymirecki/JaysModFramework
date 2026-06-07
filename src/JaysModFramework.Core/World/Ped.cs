@@ -1,3 +1,5 @@
+using JaysModFramework.Core.Native;
+
 namespace JaysModFramework.Core.World;
 
 /// <summary>

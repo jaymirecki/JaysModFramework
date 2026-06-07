@@ -1,4 +1,4 @@
-using JaysModFramework.Core.World;
+using JaysModFramework.Core.Native;
 using RageEntity = Rage.Entity;
 using Vector3 = JaysModFramework.Core.Vector3;
 

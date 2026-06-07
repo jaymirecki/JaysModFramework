@@ -1,6 +1,6 @@
 using System;
 
-namespace JaysModFramework.Core.World;
+namespace JaysModFramework.Core.Native;
 
 public interface INativeEntity : IEquatable<INativeEntity>
 {

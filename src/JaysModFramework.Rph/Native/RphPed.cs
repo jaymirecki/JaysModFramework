@@ -1,3 +1,4 @@
+using JaysModFramework.Core.Native;
 using JaysModFramework.Core.World;
 using RagePed = Rage.Ped;
 

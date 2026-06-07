@@ -1,4 +1,6 @@
-namespace JaysModFramework.Core.World;
+using JaysModFramework.Core.World;
+
+namespace JaysModFramework.Core.Native;
 
 public interface INativeVehicle : INativeEntity
 {
