@@ -49,7 +49,39 @@ Plugin settings are keyed by `IPlugin.Name`. Property names in the XML match the
 
 ## Data/
 
-Content files loaded at runtime: maps, vehicle definitions, ped models, outfits, etc. See [ADR-0004](decisions/adr-0004-one-file-per-content-item.md) for the one-file-per-content-item convention.
+Content files loaded at runtime: maps, vehicle definitions, ped models, outfits, etc. Each content type gets its own subdirectory; each item gets its own file. See [ADR-0004](decisions/adr-0004-one-file-per-content-item.md) for the one-file-per-content-item convention.
+
+```
+Data/
+├── Maps/
+│   ├── MissionRowPD.xml
+│   └── AirportTerminal.xml
+├── Models/
+│   └── Vehicles/
+│       ├── Blista.xml
+│       ├── Adder.xml
+│       └── ...
+├── Worldspaces/
+│   ├── SanAndreas.xml
+│   └── CayoPerico.xml
+└── Outfits/
+    └── ...
+```
+
+### Data/Models/Vehicles/
+
+One file per vehicle model definition. The vehicle class is stored inside the XML, not encoded in the directory structure, so all models live in a single flat folder regardless of class.
+
+```xml
+<!-- Data/Models/Vehicles/Blista.xml -->
+<VehicleModelDefinition>
+  <Name>Blista</Name>
+  <ModelName>blista</ModelName>
+  <Class>Compacts</Class>
+</VehicleModelDefinition>
+```
+
+`VehicleModelRepository` scans this directory at startup and provides `GetByClass(string className)` and a sorted `Classes` list. Content mods add files to the same directory; the framework detects duplicate `ModelName` values at load time and raises an error.
 
 ## Saves/
 

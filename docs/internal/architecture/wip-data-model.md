@@ -18,68 +18,80 @@ The `EntityRegistry` maps between them.
 
 ## Entity Classes
 
-### Definition Layer
+The entity system has three layers: **native** (live game objects), **persistent** (serializable backing data), and **managed** (framework-owned, combining both).
 
-All definitions inherit from `EntityDefinition`:
+### Native Interface Layer
 
-```csharp
-public abstract class EntityDefinition
-{
-    public Guid Id { get; set; }
-    public string Tag { get; set; }
-    public Vector3 Position { get; set; }
-    public Vector3 Rotation { get; set; }
-    public bool PersistAcrossSessions { get; set; }
-    public EntitySpawnCondition SpawnCondition { get; set; }
-}
+Interfaces in Core expose live entity properties without depending on Rage.
+
+```
+INativeEntity
+├── Position: Vector3
+├── Heading: float
+├── ModelName: string
+├── Handle: int
+└── IEquatable<INativeEntity>
+         △                         △
+         │                         │
+INativePed : INativeEntity    INativeVehicle : INativeEntity
+└── Vehicle: INativeVehicle?  ├── HasSirens: bool
+                              └── SirenState: SirenState
 ```
 
-Concrete definitions:
-- `PropDefinition`
-- `VehicleDefinition`
-- `PedDefinition`
+Implemented by `RphEntity`, `RphPed`, `RphVehicle` in the Rph project. These types wrap live `Rage` entities and are never null internally.
 
-### Managed Entity Layer
+### Managed Interface Layer
 
-```csharp
-public abstract class ManagedEntity<TDefinition, TNativeEntity>
-{
-    public Guid Id => Definition.Id;
-    public TDefinition Definition { get; }
-    public TNativeEntity NativeEntity { get; private set; }
-    public bool IsSpawned { get; }
-
-    public void AttachNativeEntity(TNativeEntity entity);
-    public void Detach();
-}
+```
+IManagedEntity : INativeEntity
+├── Id: Guid
+└── IsSpawned: bool
+         △                         △
+         │                         │
+IManagedPed                   IManagedVehicle : INativeVehicle, IManagedEntity
+  : INativePed, IManagedEntity └── Custody: VehicleCustody
 ```
 
-Concrete types:
-- `ManagedProp` / `PropDefinition`
-- `ManagedVehicle` / `VehicleDefinition`
-- `ManagedPed` / `PedDefinition`
+Plugins program against `IManagedVehicle` and `IManagedPed` exclusively. They have no concept of `RphVehicle` or `PersistentVehicle`.
+
+### Persistent Layer (Core, serializable)
+
+`PersistentEntity` holds backing fields for all `INativeEntity` properties. It is the serializable snapshot written to and read from XML — no Rage dependency.
+
+- `PersistentVehicle : PersistentEntity` — adds `SirenState` and other vehicle backing fields.
+
+### Managed Implementation Layer (Core)
+
+```csharp
+// Abstract base
+Entity : IManagedEntity
+├── _native: INativeEntity?   // null when unspawned
+└── IsSpawned: bool => _native != null
+
+// Concrete vehicle
+Vehicle : Entity, IManagedVehicle
+├── _native: INativeVehicle?
+├── _persistent: PersistentVehicle?  // null for ephemeral (ambient) vehicles
+│
+├── SirenState.get => _native?.SirenState ?? _persistent.SirenState
+└── SirenState.set => { _persistent?.SirenState = value; _native?.SirenState = value; }
+```
+
+`SyncLiveToPersistent()` copies engine-mutable properties (position, heading) from `_native` to `_persistent` before despawn.
 
 ### Live-Backed Properties
 
 Properties differ based on whether the game engine can mutate them independently:
 
 ```csharp
-// Framework-controlled: write-through to native when spawned
-public VehicleColor PrimaryColor
-{
-    get => _primaryColor;
-    set { _primaryColor = value; if (IsSpawned) NativeEntity.SetPrimaryColor(value); }
-}
+// Engine-mutable (physics, player input): read live from _native when spawned
+SirenState.get => _native?.SirenState ?? _persistent.SirenState
 
-// Engine-mutable (physics, player input): always read live from handle
-public Vector3 Position
-{
-    get => IsSpawned ? NativeEntity.Position : _position;
-    set { _position = value; if (IsSpawned) NativeEntity.Position = value; }
-}
+// Write-through: update both backing store and live object
+SirenState.set => { _persistent?.SirenState = value; _native?.SirenState = value; }
 ```
 
-Position and heading are always read live from the handle when spawned. On save, these are read from the handle directly if spawned, from the backing field if not.
+Position and heading are always read live from `_native` when spawned, and synced to `_persistent` before despawn.
 
 ## Spawn Conditions
 
@@ -121,38 +133,27 @@ Transitions:
 
 ## Entity Registry
 
+`EntityRegistry` maintains two dictionaries for vehicle lookup:
+
 ```csharp
-public class EntityRegistry
-{
-    public ManagedProp RegisterProp(PropDefinition definition);
-    public ManagedVehicle RegisterVehicle(VehicleDefinition definition);
-    public ManagedPed RegisterPed(PedDefinition definition);
+// Framework-registered vehicles, keyed by stable Guid.
+// Includes both spawned and unspawned managed vehicles.
+Dictionary<Guid, Vehicle> VehicleRegistry
 
-    public void SpawnAll();
-    public void DespawnAll();
-
-    public ManagedPed GetPed(Guid id);
-    public ManagedVehicle GetVehicle(Guid id);
-    public ManagedProp GetProp(Guid id);
-}
+// Currently spawned vehicles (managed + ephemeral), keyed by native handle.
+// Updated on every spawn and despawn.
+Dictionary<int, Vehicle> SpawnedVehicleRegistry
 ```
+
+`SpawnedVehicleRegistry` is the bridge between the native layer and the managed layer. It allows any code holding a raw `INativeVehicle` (e.g. from `RphPed.Vehicle`) to retrieve the corresponding managed `Vehicle` if one exists.
 
 Cross-references between entities (e.g. a ped assigned to a vehicle) use stable GUIDs, resolved after all entities are registered.
 
 ## Save File Structure
 
-```csharp
-public class RegistrySnapshot
-{
-    public List<PropDefinition> Props { get; set; }
-    public List<VehicleDefinition> Vehicles { get; set; }
-    public List<PedDefinition> Peds { get; set; }
-}
-```
-
-Save files serialize **definitions only** — never handles. On load:
-1. Deserialize definitions from XML.
-2. Register all entities (no spawning yet).
+Save files serialize `PersistentVehicle` (and equivalent persistent types) only — never handles. On load:
+1. Deserialize from XML into `PersistentVehicle`.
+2. Construct `Vehicle` from persistent data and register.
 3. Call `SpawnAll()` — spawns entities whose conditions are met.
 
 ## World Entities
