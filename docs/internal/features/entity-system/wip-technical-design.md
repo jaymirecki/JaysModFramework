@@ -94,12 +94,14 @@ Entity (abstract) : IManagedEntity
 
 Vehicle : Entity, IManagedVehicle
 ├── _native: INativeVehicle?      ← set by EntityRegistry on spawn
-├── _persistent: PersistentVehicle?
-│       Null for ephemeral (unregistered) vehicles such as ambient traffic.
-│       Always set for framework-registered vehicles.
+├── _persistent: PersistentVehicle
+│       Always present — populated from XML on load, or snapshotted from the
+│       RphVehicle at construction for ephemeral vehicles.
+│       Whether _persistent is ever written to disk is a separate concern
+│       (see Entity Persistence below).
 │
 ├── SirenState.get => _native?.SirenState ?? _persistent.SirenState
-├── SirenState.set => { _persistent?.SirenState = value; _native?.SirenState = value; }
+├── SirenState.set => { _persistent.SirenState = value; _native?.SirenState = value; }
 └── SyncLiveToPersistent()
         Called before despawn. Copies engine-mutable properties
         (position, heading) from _native to _persistent.
@@ -135,9 +137,12 @@ Ped.Vehicle (Core):
   2. if rphVehicle == null → return null
   3. vehicle = SpawnedVehicleRegistry[rphVehicle.Handle]
   4a. found  → return registered Vehicle (managed, has Guid, Custody, etc.)
-  4b. not found → return new ephemeral Vehicle(_native: rphVehicle, _persistent: null)
-                  IsSpawned always true; reads go directly to native.
-                  Used for ambient traffic the framework did not spawn.
+  4b. not found → snapshot = PersistentVehicle.From(rphVehicle)
+                  vehicle = new Vehicle(_native: rphVehicle, _persistent: snapshot)
+                  VehicleRegistry[vehicle.Id] = vehicle   // register so it can be saved
+                  SpawnedVehicleRegistry[rphVehicle.Handle] = vehicle
+                  return vehicle
+                  IsSpawned always true. Custody starts at MapOwned.
 ```
 
 Plugins always receive an `IManagedVehicle` regardless of whether the vehicle is framework-managed or ambient. For ambient traffic `IsSpawned` is always true. For managed vehicles, `IsSpawned` reflects whether the framework has spawned it.
@@ -191,11 +196,16 @@ Trainer-spawned vehicles are set to `PlayerOwned` immediately on spawn.
 
 ## Entity Persistence
 
-| Category | PersistAcrossSessions | Saved | Notes |
-|---|---|---|---|
-| Player-owned | `true` | Yes | Restored on next session load |
-| Map-local | `false` | No | Spawned when map loads; reset on map reload |
-| Ephemeral (ambient) | N/A | No | Not in VehicleRegistry; no PersistentVehicle |
+Every `Vehicle` has a `PersistentVehicle`. Whether that backing store is written to disk depends on whether the vehicle is in `VehicleRegistry` at save time — not on how it was originally created.
+
+| Category | In VehicleRegistry | Notes |
+|---|---|---|
+| Player-owned | Yes | Always included in save. Restored on next session load. |
+| Map-local | Yes | Included in save. Respawned when map loads; `MapOwned` custody means the map can reset them. |
+| Ambient (unwrapped) | No | Never seen by the framework; no `Vehicle` object exists. |
+| Ambient (wrapped) | Lazily, on first encounter | Included in save if in registry at save time. `MapOwned` custody; cleaned up by the custody system once conditions are met. |
+
+The custody state on load determines what happens to ambient vehicles from a prior session: `MapOwned` vehicles that have been out of range for long enough are cleaned up before the player sees them; those still nearby are respawned.
 
 Save files serialize the `PersistentVehicle` (and equivalent persistent types) only — never handles. On load:
 1. Deserialize from XML into `PersistentVehicle`.

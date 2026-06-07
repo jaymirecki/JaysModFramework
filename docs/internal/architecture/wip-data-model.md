@@ -71,10 +71,10 @@ Entity : IManagedEntity
 // Concrete vehicle
 Vehicle : Entity, IManagedVehicle
 ├── _native: INativeVehicle?
-├── _persistent: PersistentVehicle?  // null for ephemeral (ambient) vehicles
+├── _persistent: PersistentVehicle   // always present; snapshotted from RphVehicle for ephemeral vehicles
 │
 ├── SirenState.get => _native?.SirenState ?? _persistent.SirenState
-└── SirenState.set => { _persistent?.SirenState = value; _native?.SirenState = value; }
+└── SirenState.set => { _persistent.SirenState = value; _native?.SirenState = value; }
 ```
 
 `SyncLiveToPersistent()` copies engine-mutable properties (position, heading) from `_native` to `_persistent` before despawn.
