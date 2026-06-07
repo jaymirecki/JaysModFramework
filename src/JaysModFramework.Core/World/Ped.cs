@@ -7,7 +7,7 @@ namespace JaysModFramework.Core.World;
 /// registry-backed vehicle lookup so <see cref="Vehicle"/> returns the concrete
 /// <see cref="World.Vehicle"/> rather than a raw native wrapper.
 /// </summary>
-public class Ped : Entity, IManagedPed
+public class Ped : Entity
 {
     private readonly INativePed _nativePed;
     private readonly EntityRegistry _registry;
@@ -47,9 +47,9 @@ public class Ped : Entity, IManagedPed
         }
     }
 
-    public void WarpIntoVehicle(IManagedVehicle vehicle, VehicleSeat seat)
+    public void WarpIntoVehicle(Vehicle vehicle, VehicleSeat seat)
     {
-        if (vehicle is Vehicle v && v.NativeVehicle != null)
-            _nativePed.WarpIntoVehicle(v.NativeVehicle, seat);
+        if (vehicle?.NativeVehicle != null)
+            _nativePed.WarpIntoVehicle(vehicle.NativeVehicle, seat);
     }
 }

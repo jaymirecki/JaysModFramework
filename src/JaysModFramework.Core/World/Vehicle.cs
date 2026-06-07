@@ -8,7 +8,7 @@ namespace JaysModFramework.Core.World;
 /// Property reads delegate to the live object when spawned, falling back to the
 /// persistent store when unspawned.
 /// </summary>
-public class Vehicle : Entity, IManagedVehicle
+public class Vehicle : Entity, ISaveableVehicle
 {
     internal INativeVehicle? NativeVehicle => Native as INativeVehicle;
     private readonly PersistentVehicle _persistent;

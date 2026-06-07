@@ -8,7 +8,7 @@ namespace JaysModFramework.Core.World;
 /// (<see cref="Native"/>) and a stable <see cref="Id"/>. Equality is by <see cref="Id"/>
 /// so that the same entity compares equal across any number of managed wrapper instances.
 /// </summary>
-public abstract class Entity : IManagedEntity
+public abstract class Entity : ISaveableEntity, IEquatable<Entity>
 {
     protected INativeEntity? Native { get; set; }
 
@@ -20,12 +20,12 @@ public abstract class Entity : IManagedEntity
     public abstract float Heading { get; }
     public abstract string ModelName { get; }
 
-    public bool Equals(IManagedEntity other)
+    public bool Equals(Entity other)
     {
         if (other is null) return false;
         return Id == other.Id;
     }
 
-    public override bool Equals(object obj) => obj is IManagedEntity e && Equals(e);
+    public override bool Equals(object obj) => obj is Entity e && Equals(e);
     public override int GetHashCode() => Id.GetHashCode();
 }
