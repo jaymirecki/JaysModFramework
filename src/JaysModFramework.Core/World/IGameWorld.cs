@@ -2,7 +2,7 @@ namespace JaysModFramework.Core.World;
 
 public interface IGameWorld
 {
-    IPlayer Player { get; }
+    Player Player { get; }
 
     /// <summary>
     /// Loads the model, spawns the vehicle at the given position and heading,

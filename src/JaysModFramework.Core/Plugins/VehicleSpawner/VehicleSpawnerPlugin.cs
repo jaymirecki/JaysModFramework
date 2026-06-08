@@ -12,7 +12,7 @@ public class VehicleSpawnerPlugin : MenuPlugin
         MenuTitle = "Vehicle Spawner";
     }
 
-    public override void Initialize(IFrameworkServices services)
+    public override void Initialize(Framework services)
     {
         var world = services.World;
         var menuService = services.Game.MenuService;

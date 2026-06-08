@@ -12,7 +12,7 @@ public class Ped : Entity
     private INativePed? NativePed => Native as INativePed;
     private readonly EntityRegistry _registry;
 
-    public Ped(INativePed nativePed, EntityRegistry registry)
+    internal Ped(INativePed nativePed, EntityRegistry registry)
     {
         Native = nativePed;
         _registry = registry;

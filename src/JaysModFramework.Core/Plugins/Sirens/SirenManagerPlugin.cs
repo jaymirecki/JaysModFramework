@@ -28,7 +28,7 @@ public class SirenManagerPlugin : MenuPlugin
         Menu.Add(_sirenListItem);
     }
 
-    public override void Initialize(IFrameworkServices services)
+    public override void Initialize(Framework services)
     {
         _game = services.Game;
         _world = services.World;

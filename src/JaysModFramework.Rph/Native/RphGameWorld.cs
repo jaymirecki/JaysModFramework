@@ -9,7 +9,7 @@ namespace JaysModFramework.Rph.Native;
 internal sealed class RphGameWorld : IGameWorld
 {
     private readonly EntityRegistry _registry;
-    private readonly IPlayer _player;
+    private readonly CorePlayer _player;
 
     internal RphGameWorld(EntityRegistry registry)
     {
@@ -17,7 +17,7 @@ internal sealed class RphGameWorld : IGameWorld
         _player = new CorePlayer(() => new RphPed(Game.LocalPlayer.Character), registry);
     }
 
-    public IPlayer Player => _player;
+    public CorePlayer Player => _player;
 
     public CoreVehicle SpawnVehicle(string modelName, Vector3 position, float heading)
     {

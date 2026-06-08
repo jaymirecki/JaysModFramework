@@ -8,7 +8,7 @@ using JaysModFramework.Core.World;
 
 namespace JaysModFramework.Core;
 
-public class Framework : IFrameworkServices
+public class Framework
 {
     internal INativeFramework NativeFramework { get; }
     public GameServices Game { get; }

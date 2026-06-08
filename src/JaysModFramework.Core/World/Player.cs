@@ -8,12 +8,12 @@ namespace JaysModFramework.Core.World;
 /// native player character on each access, backed by a stable <see cref="EntityRegistry"/>
 /// for vehicle lookup.
 /// </summary>
-public class Player : IPlayer
+public class Player
 {
     private readonly Func<INativePed> _pedFactory;
     private readonly EntityRegistry _registry;
 
-    public Player(Func<INativePed> pedFactory, EntityRegistry registry)
+    internal Player(Func<INativePed> pedFactory, EntityRegistry registry)
     {
         _pedFactory = pedFactory;
         _registry = registry;
