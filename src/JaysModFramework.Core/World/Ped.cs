@@ -9,20 +9,18 @@ namespace JaysModFramework.Core.World;
 /// </summary>
 public class Ped : Entity
 {
-    private readonly INativePed _nativePed;
+    private INativePed? NativePed => Native as INativePed;
     private readonly EntityRegistry _registry;
 
     public Ped(INativePed nativePed, EntityRegistry registry)
     {
-        _nativePed = nativePed;
         Native = nativePed;
         _registry = registry;
     }
 
-    // INativeEntity — always delegate to live native (player ped is always spawned)
-    public override Vector3 Position => _nativePed.Position;
-    public override float Heading => _nativePed.Heading;
-    public override string ModelName => _nativePed.ModelName;
+    public override Vector3 Position => NativePed?.Position ?? default;
+    public override float Heading => NativePed?.Heading ?? default;
+    public override string ModelName => NativePed?.ModelName ?? string.Empty;
 
     /// <summary>
     /// The vehicle the ped is currently in, or null if on foot.
@@ -32,7 +30,7 @@ public class Ped : Entity
     {
         get
         {
-            var native = _nativePed.Vehicle;
+            var native = NativePed?.Vehicle;
             if (native == null) return null;
 
             if (_registry.TryGetByHandle(native.Handle, out var managed))
@@ -50,6 +48,6 @@ public class Ped : Entity
     public void WarpIntoVehicle(Vehicle vehicle, VehicleSeat seat)
     {
         if (vehicle?.NativeVehicle != null)
-            _nativePed.WarpIntoVehicle(vehicle.NativeVehicle, seat);
+            NativePed?.WarpIntoVehicle(vehicle.NativeVehicle, seat);
     }
 }
