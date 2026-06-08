@@ -10,7 +10,7 @@ public class PluginManager
 
     public void Register(IPlugin plugin) => _plugins.Add(plugin);
 
-    public void InitializeAll(IFrameworkServices services)
+    public void InitializeAll(Framework services)
     {
         foreach (var plugin in _plugins)
             plugin.Initialize(services);
