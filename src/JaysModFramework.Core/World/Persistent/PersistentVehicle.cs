@@ -8,7 +8,7 @@ namespace JaysModFramework.Core.World;
 /// snapshot on first encounter and updated via <c>SyncLiveToPersistent()</c>
 /// before despawn.
 /// </summary>
-public class PersistentVehicle : PersistentEntity, ISaveableVehicle
+internal class PersistentVehicle : PersistentEntity, ISaveableVehicle
 {
     public bool HasSirens { get; set; }
     public SirenState SirenState { get; set; } = SirenState.Off;

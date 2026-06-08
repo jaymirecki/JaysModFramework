@@ -15,7 +15,7 @@ public class Vehicle : Entity, ISaveableVehicle
 
     public VehicleCustody Custody { get; set; }
 
-    public Vehicle(PersistentVehicle persistent, VehicleCustody custody = VehicleCustody.MapOwned)
+    internal Vehicle(PersistentVehicle persistent, VehicleCustody custody = VehicleCustody.MapOwned)
     {
         _persistent = persistent;
         Custody = custody;

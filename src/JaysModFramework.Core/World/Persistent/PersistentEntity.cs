@@ -5,7 +5,7 @@ namespace JaysModFramework.Core.World;
 /// <see cref="INativeEntity"/> properties so they can be read when the entity
 /// is unspawned and written to/from XML on save and load.
 /// </summary>
-public abstract class PersistentEntity : ISaveableEntity
+internal abstract class PersistentEntity : ISaveableEntity
 {
     public Vector3 Position { get; set; }
     public float Heading { get; set; }
