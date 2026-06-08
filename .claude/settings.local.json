@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(just pack *)",
+      "Bash(just run *)",
+      "Bash(find /c/Users/jmorr/.nuget/packages -iname \"*lemonui*\" -type f 2>/dev/null | head -20)",
+      "Bash(just build *)",
+      "Bash(dotnet build *)"
+    ]
+  }
+}

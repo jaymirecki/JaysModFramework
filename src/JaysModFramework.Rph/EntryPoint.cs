@@ -1,4 +1,5 @@
-using Rage;
+using JaysModFramework.Core;
+using JaysModFramework.Rph.Native;
 using Rage.Attributes;
 
 [assembly: Plugin("JaysModFramework",
@@ -11,19 +12,13 @@ public static class EntryPoint
 {
     public static void Main()
     {
-        Log.Info("JMF initializing");
-        var menu = new InteractionMenuManager();
-        Log.Info("JMF ready");
+        var nativeFramework = new RphNativeFramework();
+        Framework framework = new Framework(nativeFramework);
 
-        while (true)
-        {
-            menu.Tick();
-            GameFiber.Yield();
-        }
+        ((RphLifecycleService)nativeFramework.Lifecycle).Run(framework);
     }
 
     public static void OnUnload(bool isShuttingDown)
     {
-        Log.Info($"JMF unloading (shutting down: {isShuttingDown})");
     }
 }

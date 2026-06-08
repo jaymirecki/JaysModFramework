@@ -28,6 +28,7 @@ public class Logger
         _uiService = game.NativeFramework.UIService;
 
         Directory.CreateDirectory(Path.GetDirectoryName(_logPath)!);
+        ClearFile();
         WriteToFile("INFO", "=== JMF session started ===");
     }
 
@@ -43,6 +44,12 @@ public class Logger
 
         if (level >= _notificationLevel)
             _uiService.Notify($"[{label}] {message}");
+    }
+
+    private void ClearFile()
+    {
+        lock (_lock)
+            File.WriteAllText(_logPath, string.Empty);
     }
 
     private void WriteToFile(string label, string message)

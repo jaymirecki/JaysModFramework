@@ -1,0 +1,5 @@
+<VehicleModelDefinition>
+  <Name>Police Cruiser</Name>
+  <ModelName>police</ModelName>
+  <Class>Emergency</Class>
+</VehicleModelDefinition>

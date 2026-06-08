@@ -36,7 +36,7 @@ public class FrameworkConfig
         if (frameworkEl != null)
         {
             config.Framework.DebugMode = ParseBool(frameworkEl.Element("DebugMode"), config.Framework.DebugMode);
-            config.Framework.MenuOpenControl = frameworkEl.Element("MenuOpenControl")?.Value ?? config.Framework.MenuOpenControl;
+            config.Framework.MenuOpenControl = ParseEnum(frameworkEl.Element("MenuOpenControl"), config.Framework.MenuOpenControl);
         }
 
         var loggerEl = root.Element("Logger");
@@ -87,13 +87,13 @@ public class FrameworkConfig
         doc.Save(configPath);
     }
 
-    private static bool ParseBool(XElement? element, bool defaultValue)
+    private static bool ParseBool(XElement element, bool defaultValue)
     {
         if (element == null) return defaultValue;
         return bool.TryParse(element.Value, out var result) ? result : defaultValue;
     }
 
-    private static T ParseEnum<T>(XElement? element, T defaultValue) where T : struct, Enum
+    private static T ParseEnum<T>(XElement element, T defaultValue) where T : struct, Enum
     {
         if (element == null) return defaultValue;
         return Enum.TryParse(element.Value, ignoreCase: true, out T result) ? result : defaultValue;
