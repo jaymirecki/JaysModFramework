@@ -1,0 +1,8 @@
+# Large generated directories - regenerate with scripts
+html/
+index.html
+INDEX.json
+
+# Old conversion attempts
+markdown_old/
+*.tmp

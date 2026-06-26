@@ -13,6 +13,7 @@ This directory contains all internal documentation for JaysModFramework (JMF).
 | [`quality/`](quality/) | Coding standards and review guidelines |
 | [`requirements/`](requirements/) | Functional and non-functional requirements |
 | [`onboarding/`](onboarding/) | Getting started guides |
+| [`reference/`](reference/) | External SDK and API reference documentation |
 
 ## Context Map
 
@@ -23,6 +24,7 @@ This directory contains all internal documentation for JaysModFramework (JMF).
 | Term definitions and abbreviations | [Glossary](product/glossary.md) |
 | Game folder layout and config.xml structure | [File Structure](architecture/file-structure.md) |
 | Why we chose RPH over SHVDN | [ADR-0001](architecture/decisions/adr-0001-rph-vs-shvdn.md) |
+| RagePluginHook SDK reference | [RPH Documentation](reference/rph/) |
 | Why interiors are code, not config | [ADR-0002](architecture/decisions/adr-0002-interiors-not-data-driven.md) |
 | GTA VI portability strategy | [ADR-0003](architecture/decisions/adr-0003-gta6-portability.md) |
 | Data folder structure and content mod patching | [ADR-0004](architecture/decisions/adr-0004-one-file-per-content-item.md) |
