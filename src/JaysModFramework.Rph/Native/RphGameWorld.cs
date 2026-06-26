@@ -3,6 +3,8 @@ using Rage;
 using CorePlayer = JaysModFramework.Core.World.Player;
 using CoreVehicle = JaysModFramework.Core.World.Vehicle;
 using Vector3 = JaysModFramework.Core.Vector3;
+using GameDateTime = JaysModFramework.Core.World.GameDateTime;
+using CoreWeatherType = JaysModFramework.Core.World.WeatherType;
 
 namespace JaysModFramework.Rph.Native;
 
@@ -18,6 +20,28 @@ internal sealed class RphGameWorld : IGameWorld
     }
 
     public CorePlayer Player => _player;
+
+    public void SetWeather(CoreWeatherType weather)
+    {
+        var rageWeather = weather switch
+        {
+            CoreWeatherType.Clear => Rage.WeatherType.Clear,
+            CoreWeatherType.Clouds => Rage.WeatherType.Clouds,
+            CoreWeatherType.Rain => Rage.WeatherType.Rain,
+            CoreWeatherType.Foggy => Rage.WeatherType.Foggy,
+            CoreWeatherType.Overcast => Rage.WeatherType.Overcast,
+            _ => Rage.WeatherType.Clear,
+        };
+
+        World.Weather = rageWeather;
+    }
+
+    public void SetDateTime(GameDateTime dateTime)
+    {
+        var dateTimeValue = new System.DateTime(dateTime.Year, dateTime.Month, dateTime.Day,
+                                               dateTime.Hour, dateTime.Minute, 0);
+        World.DateTime = dateTimeValue;
+    }
 
     public CoreVehicle SpawnVehicle(string modelName, Vector3 position, float heading)
     {

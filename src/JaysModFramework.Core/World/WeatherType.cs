@@ -4,7 +4,7 @@ public enum WeatherType
 {
     Clear,
     Clouds,
-    Rainy,
+    Rain,
     Foggy,
     Overcast,
 }

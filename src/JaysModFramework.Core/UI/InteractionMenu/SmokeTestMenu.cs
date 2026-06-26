@@ -98,17 +98,17 @@ internal static class SmokeTestMenu
 
         try
         {
-            var gameState = new GameState();
+            var gameState = new GameState(game.NativeFramework.World);
             gameState.Load(smokeTestPath);
 
-            // TODO: Verify loaded state once GameState.Load() is implemented
+            // TODO: Verify loaded state once Player methods are implemented
             // Expected values:
             // - Player model: trevor
             // - Player position: (428, -982, 30.7)
             // - Player heading: 270°
             // - Player health: 200
             // - Player armor: 100
-            // - World weather: Rainy
+            // - World weather: Rain
             // - World time: 12:00 (noon), January 1, 2012
 
             game.Logger.Info("Smoke Test: Load test passed");
@@ -134,14 +134,14 @@ internal static class SmokeTestMenu
             var tempSavePath = Path.Combine(gameDirectory, "JMF", "Saves", "SmokeTest_Tmp");
 
             // Load original save
-            var gameState = new GameState();
+            var gameState = new GameState(game.NativeFramework.World);
             gameState.Load(smokeTestPath);
 
             // Save to temp location
             gameState.Save(tempSavePath);
 
             // Load temp save
-            var tempGameState = new GameState();
+            var tempGameState = new GameState(game.NativeFramework.World);
             tempGameState.Load(tempSavePath);
 
             // TODO: Verify round-tripped state matches original
@@ -151,7 +151,7 @@ internal static class SmokeTestMenu
             // - Player heading: 270°
             // - Player health: 200
             // - Player armor: 100
-            // - World weather: Rainy
+            // - World weather: Rain
             // - World time: 12:00 (noon), January 1, 2012
 
             // Cleanup temp save
