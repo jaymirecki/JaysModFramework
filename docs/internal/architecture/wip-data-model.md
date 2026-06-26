@@ -49,14 +49,22 @@ IManagedEntity : INativeEntity
          △                         △
          │                         │
 IManagedPed                   IManagedVehicle : INativeVehicle, IManagedEntity
-  : INativePed, IManagedEntity └── Custody: VehicleCustody
+  : INativePed, IManagedEntity └── Custody: EntityCustody
 ```
 
 Plugins program against `IManagedVehicle` and `IManagedPed` exclusively. They have no concept of `RphVehicle` or `PersistentVehicle`.
 
 ### Persistent Layer (Core, serializable)
 
-`PersistentEntity` holds backing fields for all `INativeEntity` properties. It is the serializable snapshot written to and read from XML — no Rage dependency.
+`PersistentEntity` holds backing fields for all `INativeEntity` properties, plus cell tracking and custody. It is the serializable snapshot written to and read from XML — no Rage dependency.
+
+Fields beyond `INativeEntity`:
+- `Id: Guid` — stable framework identity; used as the save filename and for cross-entity references.
+- `SpawnCondition: EntitySpawnCondition` — evaluated by `SpawnAll()`.
+- `BornInCellId: string` — the Cell that originally spawned this entity; never changes.
+- `CurrentCellId: string?` — which Cell should respawn this entity; null for overworld entities.
+- `IsInOverworld: bool` — true when the entity is in the open world, not inside a Cell.
+- `Custody: EntityCustody` — governs cleanup and persistence rules.
 
 - `PersistentVehicle : PersistentEntity` — adds `SirenState` and other vehicle backing fields.
 
@@ -109,27 +117,33 @@ The `TickManager` evaluates conditions each frame and despawns/respawns entities
 
 ## Entity Persistence
 
-| Type | Description | Saved? |
+| Custody | In Save File | Notes |
 |---|---|---|
-| Session-persistent | Player's owned vehicle, companions, quest-critical peds | Yes — tracked in save file, restored on load |
-| Map-local (transient) | Ambient peds, decorative props, map vehicles | No — spawned when map loads, reset when map reloads |
+| `Persistent` | Always | Restored on every session load. Never cleaned up by the framework. |
+| `CellOwned` | Until cell reset | Saved between resets. Deregistered on cell reset; recreated from Map XML on next cell load. |
+| `Unclaimed` | Until cleanup | Saved until the cleanup threshold is met (N in-game days beyond player range). |
+| `Transient` | Never | Despawned when beyond player distance; not saved. Covers ambient traffic wrapped by the framework. |
 
-## Vehicle Custody Model
+## Entity Custody
+
+Custody governs cleanup and persistence rules. It is separate from ownership — which character or player has a relationship to the entity is tracked elsewhere.
 
 ```csharp
-public enum VehicleCustody
+public enum EntityCustody
 {
-    MapOwned,       // spawned by map; player hasn't interacted
-    PlayerCustody,  // player has driven it away; cannot despawn
-    PlayerOwned,    // explicitly stored/claimed by player
+    Transient,    // Despawn when beyond player distance threshold. Never saved.
+    CellOwned,    // Belongs to its birth Cell. Deregistered on cell reset. Saved between resets.
+    Unclaimed,    // Detached from birth Cell. Cleaned up after N in-game days beyond player range. Saved.
+    Persistent,   // Never cleaned up by the framework. Always saved.
 }
 ```
 
-Transitions:
-- `MapOwned` → `PlayerCustody`: player enters and drives beyond a distance threshold, or map tries to reset while player is in it.
-- `PlayerCustody` → `PlayerOwned`: player explicitly stores it.
-- `PlayerCustody` → cleanup: player has been out of vehicle for X time AND is beyond Y distance.
-- `PlayerOwned` is never cleaned up by map resets.
+| Transition | Trigger |
+|---|---|
+| `CellOwned` → `Unclaimed` | Player takes the entity away from its birth Cell. |
+| `Unclaimed` → `Persistent` | Player explicitly stores or claims the entity. |
+| `Unclaimed` → deregistered | N in-game days beyond player range (nightly check). |
+| `Transient` → despawned | Entity goes beyond distance threshold from the player. |
 
 ## Entity Registry
 
@@ -158,7 +172,9 @@ Save files serialize `PersistentVehicle` (and equivalent persistent types) only 
 
 ## World Entities
 
-### WorldspaceDefinition
+### WorldspaceDefinition and CellDefinition
+
+A **Map** is a data definition (`Data/Maps/`). A **Cell** is a runtime instance of a Map, defined inline in the worldspace. Multiple Cells may reference the same Map.
 
 ```csharp
 public class WorldspaceDefinition
@@ -166,18 +182,28 @@ public class WorldspaceDefinition
     public string Id { get; set; }
     public string DisplayName { get; set; }
     public GtaMapRegion BaseMapRegion { get; set; }  // SanAndreas, CayoPerico, NorthYankton
-    public List<string> MapIds { get; set; }
+    public List<CellDefinition> Cells { get; set; }
     public WorldspaceAmbientConfig Ambient { get; set; }
     public List<TransitionPointDefinition> TransitionPoints { get; set; }
     public WorldspaceTravelRestrictions TravelRestrictions { get; set; }
+}
+
+public class CellDefinition
+{
+    public string Id { get; set; }
+    public string MapId { get; set; }
+
+    // Overworld cells only
+    public Vector3? SpawnPoint { get; set; }    // presence zone center; player placement on first visit
+    public float? PresenceRadius { get; set; }  // null for interior cells
 }
 ```
 
 ### Map XML Example
 
 ```xml
-<Map id="police_hq" displayName="Mission Row Police HQ"
-     spawnX="428.0" spawnY="-982.0" spawnZ="30.7">
+<Map id="police_hq" displayName="Mission Row Police HQ">
+  <ResetPeriodDays>3</ResetPeriodDays>
   <RequiredInteriors>
     <Interior ref="PoliceStation_MissionRow" />
   </RequiredInteriors>

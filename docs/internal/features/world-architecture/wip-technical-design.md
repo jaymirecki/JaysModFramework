@@ -10,16 +10,33 @@ related:
 
 # World Architecture — Technical Design
 
+## Vocabulary
+
+| Term | Category | Description |
+|---|---|---|
+| **Map** | Data | A definition in `Data/Maps/` describing required interiors, submaps, and entities to spawn. Has no knowledge of where it is placed in the world. |
+| **Cell** | State | A runtime instance of a Map. Defined inline in a `WorldspaceDefinition`. Multiple Cells may reference the same Map definition. |
+| **Overworld Cell** | — | A Cell activated by player proximity. `SpawnPoint` and `PresenceRadius` are on the Cell definition. |
+| **Interior Cell** | — | A Cell activated by an explicit trigger (door, portal). No `PresenceRadius`. |
+
+---
+
 ## Hierarchy
 
 ```
 Worldspace
-  └── Maps (one or more)
-        ├── Required Interiors (by InteriorId enum)
-        ├── Props
-        ├── Peds (map-local)
-        └── Vehicles (map-local)
+  └── Cells (inline in WorldspaceDefinition)
+        ├── MapId → Map definition (Data/Maps/)
+        │     ├── Required Interiors (by InteriorId enum)
+        │     ├── Submaps (references to other Map definitions)
+        │     ├── Props
+        │     ├── Peds
+        │     └── Vehicles
+        ├── SpawnPoint      (overworld: presence zone center; player placement on first visit)
+        └── PresenceRadius  (overworld cells only; null for interior cells)
 ```
+
+---
 
 ## Worldspaces
 
@@ -35,20 +52,32 @@ public class WorldspaceDefinition
     public string Id { get; set; }
     public string DisplayName { get; set; }
     public GtaMapRegion BaseMapRegion { get; set; }  // SanAndreas, CayoPerico, NorthYankton
-    public List<string> MapIds { get; set; }
+    public List<CellDefinition> Cells { get; set; }
     public WorldspaceAmbientConfig Ambient { get; set; }
     public List<TransitionPointDefinition> TransitionPoints { get; set; }
     public WorldspaceTravelRestrictions TravelRestrictions { get; set; }
 }
+
+public class CellDefinition
+{
+    public string Id { get; set; }
+    public string MapId { get; set; }
+
+    // Overworld cells only
+    public Vector3? SpawnPoint { get; set; }    // center of presence zone; player placement on first visit
+    public float? PresenceRadius { get; set; }  // null for interior cells
+}
 ```
+
+---
 
 ## Maps
 
-A map is a specific location or scene within a worldspace. Maps are defined entirely in XML.
+A Map is a data definition in `Data/Maps/`. It describes required interiors, entities to spawn, and submaps. It has no knowledge of where it is instantiated in the world — that is the Cell's responsibility.
 
 ```xml
-<Map id="police_hq" displayName="Mission Row Police HQ"
-     spawnX="428.0" spawnY="-982.0" spawnZ="30.7">
+<Map id="police_hq" displayName="Mission Row Police HQ">
+  <ResetPeriodDays>3</ResetPeriodDays>
   <RequiredInteriors>
     <Interior ref="PoliceStation_MissionRow" />
   </RequiredInteriors>
@@ -64,7 +93,104 @@ A map is a specific location or scene within a worldspace. Maps are defined enti
 </Map>
 ```
 
-**Load order**: required interiors are activated before entities are spawned, because entities may depend on the interior geometry existing.
+`ResetPeriodDays` is the number of in-game days after the player last visited this Cell before its `CellOwned` entities are reset. See [Cell State and Reset Lifecycle](#cell-state-and-reset-lifecycle).
+
+---
+
+## Submaps
+
+A Map may reference other Maps as submaps. Submaps allow entity sets to be reused across Maps — for example, a standard police patrol (two patrol cars, one officer) defined once and included in multiple police station Maps.
+
+```xml
+<Map id="paleto_police_exterior">
+  <ResetPeriodDays>3</ResetPeriodDays>
+  <Submaps>
+    <Submap ref="police_patrol_standard" />
+  </Submaps>
+  <Vehicles>
+    <Vehicle model="police" ... />
+  </Vehicles>
+</Map>
+```
+
+`Map.Load(Framework, Cell)` expands submaps depth-first. All entities spawned during expansion — regardless of which Map definition they originate from — are tagged to the top-level Cell. `BornInCellId` is always the top-level Cell's Id; there is no concept of "born in a submap."
+
+---
+
+## Overworld Cell Activation
+
+Overworld Cells are activated and deactivated by the `TickManager` based on player proximity to `Cell.SpawnPoint`:
+
+- Player enters `PresenceRadius` → `Map.Load(Framework, Cell)` is called.
+- Player exits `PresenceRadius` → cell unload sequence runs.
+
+Interior Cells are activated by explicit triggers (doors, portals) rather than proximity. Their `SpawnPoint` is the player placement position on entry; their `PresenceRadius` is not set.
+
+---
+
+## Entity Handling at Map Load and Unload
+
+### Load sequence
+
+`Map.Load(Framework, Cell)` is called when a Cell activates. The `Cell` reference is threaded through all submap expansion.
+
+1. Activate required interiors via `InteriorFactory`. Interior geometry must exist before entities are spawned.
+2. Determine load type:
+   - **First load or post-reset** (`Cell.LastVisited == null`): register `CellOwned` entities from Map XML and all submaps into `EntityRegistry`, tagging each with `BornInCellId = Cell.Id` and `Custody = CellOwned`.
+   - **Reload** (`Cell.LastVisited != null`, entities already registered from a prior visit): skip registration.
+3. Spawn all registered entities with `BornInCellId == Cell.Id` (and unregistered `Persistent`/`Unclaimed` entities whose saved `CurrentCellId` matches this Cell) whose `SpawnCondition` is met, in dependency order: Vehicles → Peds → Props.
+
+### Unload sequence
+
+1. `SyncLiveToPersistent()` on all spawned entities assigned to this Cell.
+2. Despawn those entities (remove native handles; entities remain registered).
+3. Set `Cell.LastVisited = CurrentInGameTime`.
+
+---
+
+## Cell State and Reset Lifecycle
+
+### Cell State
+
+```csharp
+public class CellState
+{
+    public string CellId { get; set; }
+    public GameDateTime? LastVisited { get; set; }  // null means never visited or already reset
+}
+```
+
+`LastVisited` is the sole indicator of a cell's reset status:
+- **Non-null**: cell has been visited and has not yet reset. The nightly check uses this to decide when to trigger a reset.
+- **Null**: cell has never been visited, or has already been reset. The cell load sequence uses this to decide whether to recreate entities from Map XML.
+
+`LastVisited` is set when the cell unloads:
+- **Interior cells**: when the interior deactivates.
+- **Overworld cells**: when the player exits `PresenceRadius`.
+
+`LastVisited` is persisted across sessions via `CellVisitInfo` in `world.xml` (see [Save/Load — Technical Design](../save-load/wip-technical-design.md)). This ensures the reset timer continues from where it left off — a cell visited on session day 3 with a 5-day reset period will still reset on day 8, even if the player quit and returned. Templates contain no Cell visit data.
+
+### Nightly Reset Check
+
+Every in-game night, the `TickManager` evaluates all Cells with a known `LastVisited`:
+
+```
+for each Cell where LastVisited != null && Cell is not currently active:
+  if CurrentInGameTime - Cell.LastVisited >= Map.ResetPeriodDays:
+    deregister all entities where BornInCellId == Cell.Id && Custody == CellOwned
+    Cell.LastVisited = null   // null signals first-load on next activation; dropped from CellVisits on next save
+```
+
+### What Reset Does and Does Not Affect
+
+| Custody | Cell reset behaviour |
+|---|---|
+| `CellOwned` | Deregistered. Recreated from Map XML on next cell load. |
+| `Unclaimed` | Not affected. Entity persists independently with its own cleanup clock. |
+| `Persistent` | Not affected. Never cleaned up by the framework. |
+| `Transient` | Not registered; irrelevant to reset. |
+
+---
 
 ## Transition Points
 
@@ -94,11 +220,7 @@ Transitions can restrict passage based on:
 - Save flags (quest progression gates).
 - Inventory items (e.g. a ticket or pass).
 
-## Entity Handling at Map Load
-
-1. Activate required interiors (via `InteriorFactory`).
-2. Register map-local entities with the `EntityRegistry`.
-3. Call `SpawnAll()` (or let `TickManager` evaluate conditions and spawn on the next tick).
+---
 
 ## Open Questions
 
@@ -115,7 +237,9 @@ Does weather/ambient change immediately on worldspace transition, or gradually? 
 
 ### Worldspace Streaming
 
-Maps likely need to activate and deactivate based on player proximity rather than all loading at once when a worldspace is entered. Streaming boundaries and activation radius design TBD.
+Cells likely need to activate and deactivate based on player proximity rather than all loading at once when a worldspace is entered. Streaming boundaries and activation radius design TBD.
+
+---
 
 ## Related Documentation
 

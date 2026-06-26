@@ -23,7 +23,7 @@ Each save is a named directory under `JMF/Saves/`. All cross-entity references u
 ```
 JMF/Saves/
   {save-name}/
-    world.xml         ← WorldState: weather, datetime, worldspace, active map
+    world.xml         ← WorldState: weather, datetime, worldspace, active cell, pending cell resets
     player.xml        ← PlayerState: position, heading, health, ped model
     flags.xml         ← SaveFlags: key/value boolean progression state
     Vehicles/
@@ -74,18 +74,29 @@ public class GameState
 public class WorldState
 {
     public string WorldspaceId { get; set; }
-    public string ActiveMapId { get; set; }
+    public string? ActiveCellId { get; set; }   // null if player is in the open overworld
     public WeatherType Weather { get; set; }
     public GameDateTime DateTime { get; set; }
+    public List<CellVisitInfo> CellVisits { get; set; }  // visited cells not yet reset
+}
+
+public class CellVisitInfo
+{
+    public string CellId { get; set; }
+    public GameDateTime LastVisited { get; set; }
 }
 ```
+
+`CellVisitInfo` is a serialization-only DTO. It is distinct from `CellState` (the runtime object) and `CellDefinition` (the worldspace definition) to avoid naming conflicts and make the load-time reconciliation explicit.
+
+`CellVisits` includes every Cell that has been visited but not yet reset — i.e., every Cell with a non-null `LastVisited`. Once a Cell resets (nightly check fires), it is removed from `CellVisits` on the next save. Templates contain no `<CellVisits>` entries.
 
 Serialized to `world.xml`:
 
 ```xml
 <WorldState>
   <WorldspaceId>SanAndreas</WorldspaceId>
-  <ActiveMapId>police_hq</ActiveMapId>
+  <ActiveCellId>mission_row_pd</ActiveCellId>
   <Weather>Clear</Weather>
   <DateTime>
     <Hour>14</Hour>
@@ -94,6 +105,10 @@ Serialized to `world.xml`:
     <Month>10</Month>
     <Year>2024</Year>
   </DateTime>
+  <CellVisits>
+    <CellVisitInfo cellId="paleto_police_exterior" lastVisited="15/10/2024 14:30" />
+    <CellVisitInfo cellId="mission_row_pd" lastVisited="15/10/2024 08:00" />
+  </CellVisits>
 </WorldState>
 ```
 
@@ -230,9 +245,9 @@ Each state object — `WorldState`, `PlayerState`, and the registry state object
 ```csharp
 public class PersistentVehicle : PersistentEntity
 {
-    // Inherited: Id (Guid), Position, Heading, ModelName, SpawnCondition
+    // Inherited: Id (Guid), Position, Heading, ModelName, SpawnCondition,
+    //            BornInCellId, CurrentCellId, IsInOverworld, Custody (EntityCustody)
     public SirenState SirenState { get; set; }
-    public VehicleCustody Custody { get; set; }
 }
 ```
 
@@ -244,7 +259,9 @@ Example `Vehicles/{guid}.xml`:
   <Position x="428.1" y="-980.3" z="30.7" />
   <Heading>270.0</Heading>
   <SirenState>Off</SirenState>
-  <Custody>PlayerOwned</Custody>
+  <Custody>Persistent</Custody>
+  <BornInCellId>mission_row_pd</BornInCellId>
+  <IsInOverworld>false</IsInOverworld>
   <SpawnCondition>
     <RequiredSaveFlag>apartment_owned</RequiredSaveFlag>
   </SpawnCondition>
@@ -323,44 +340,60 @@ GameState.Load(savePath)
   │
   ├── 3. Deserialize and apply SaveFlags ← savePath/flags.xml
   │        Flags must be populated before spawning so that spawn conditions
-  │        referencing flags evaluate correctly in SpawnAll().
+  │        referencing flags evaluate correctly in SpawnAll() (step 8).
   │
-  ├── 4. Deserialize and register all session-persistent entities (no spawning yet)
-  │        4a. VehicleRegistryState.Load(savePath)
+  │
+  ├── 4. Reconcile CellVisitInfo records
+  │        For each CellVisitInfo in worldState.CellVisits:
+  │          if CurrentInGameTime - LastVisited >= Map.ResetPeriodDays:
+  │            → Cell expired while the player was away.
+  │               Do not restore LastVisited (leave CellState.LastVisited = null).
+  │               CellOwned entities for this Cell are skipped in step 5.
+  │          else:
+  │            → Reset period has not elapsed. Restore CellState.LastVisited
+  │               so the nightly check can continue from where it left off.
+  │
+  ├── 5. Deserialize and register all saved entities (no spawning yet)
+  │        Includes Persistent, CellOwned (not yet reset), and Unclaimed entities.
+  │        CellOwned entities belonging to a Cell whose LastVisited is still null
+  │        after step 4 are skipped — they will be recreated from Map XML when
+  │        the cell next loads.
+  │        5a. VehicleRegistryState.Load(savePath)
   │              Deserialize PersistentVehicle; construct Vehicle; register.
-  │        4b. PedRegistryState.Load(savePath)
+  │        5b. PedRegistryState.Load(savePath)
   │              Deserialize PersistentPed; construct Ped; register.
   │              Each Ped stores its saved CurrentVehicleId as a backing field.
   │              Resolution is lazy — no explicit cross-entity resolution step needed.
-  │        4c. PropRegistryState.Load(savePath)
+  │        5c. PropRegistryState.Load(savePath)
   │              Deserialize PersistentProp; construct Prop; register.
   │
-  ├── 5. Apply world properties
-  │        5a. Set game weather: _world.SetWeather(worldState.Weather)
-  │        5b. Set game time:    _world.SetDateTime(worldState.DateTime)
+  ├── 6. Apply world properties
+  │        6a. Set game weather: _world.SetWeather(worldState.Weather)
+  │        6b. Set game time:    _world.SetDateTime(worldState.DateTime)
   │
-  ├── 6. Apply PlayerState to the live player ped
-  │        6a. Set player model:   _world.Player.SetModel(playerState.Ped.ModelName)
+  ├── 7. Apply PlayerState to the live player ped
+  │        7a. Set player model:   _world.Player.SetModel(playerState.Ped.ModelName)
   │              Model change replaces the native ped — must happen before other properties.
-  │        6b. Copy ped properties: position, heading, health, armor, current vehicle, etc.
+  │        7b. Copy ped properties: position, heading, health, armor, current vehicle, etc.
   │
-  └── 7. Load worldspace and active map
+  └── 8. Load worldspace and active cell
            _world.LoadWorldspace(worldState.WorldspaceId)
-           _world.LoadMap(worldState.ActiveMapId)
-           Map loading:
+           _world.LoadCell(worldState.ActiveCellId)   // null = open overworld, no cell to load
+           Cell loading (Map.Load(Framework, Cell)):
              a. Activates required interiors.
-             b. Registers map-local entities (props, peds, vehicles from map XML)
-                into the same EntityRegistry as session-persistent entities.
+             b. If Cell.ResetPending: register fresh CellOwned entities from Map XML.
+                Otherwise: entities registered from step 4 already cover this Cell.
              c. Calls SpawnAll() in dependency order: Vehicles → Peds → Props.
-                Spawns all registered entities (both session-persistent from step 4
-                and map-local from step 7b) whose SpawnCondition is currently met.
+                Spawns all registered entities whose SpawnCondition is currently met.
+                This includes entities from step 4 (Persistent, Unclaimed, un-reset
+                CellOwned) and any newly registered entities from step 7b.
                 When a ped with a saved CurrentVehicleId is spawned, it resolves
                 and seats itself lazily (see Cross-Entity Reference Resolution).
 ```
 
-### Why Register Before Loading the Map
+### Why Register Before Loading the Cell
 
-Session-persistent entities (step 4) are registered before map loading (step 7) so that `SpawnAll()` — called by the map loader — sees the complete registry. This means a single `SpawnAll()` call handles both session-persistent and map-local entities, with no risk of double-spawning.
+Saved entities (step 5) are registered before cell loading (step 8) so that `SpawnAll()` — called by the cell loader — sees the complete registry. This means a single `SpawnAll()` call handles both saved entities and any newly registered cell entities, with no risk of double-spawning.
 
 ---
 
@@ -542,6 +575,10 @@ The following are additions required to existing classes that are not yet implem
 `PersistentEntity` currently has `Position`, `Heading`, and `ModelName`. This feature requires:
 - `Id: Guid` — stable framework identity, used as the save file name (`{guid}.xml`) and for cross-entity references.
 - `SpawnCondition` — evaluated by `SpawnAll()` to determine whether to spawn the entity.
+- `BornInCellId: string` — the Cell that originally spawned this entity. Never changes after initial spawn. Used by cell reset to identify which entities to deregister.
+- `CurrentCellId: string?` — the Cell this entity should respawn in when that Cell next activates. Null for overworld entities (managed by proximity, not cell activation).
+- `IsInOverworld: bool` — true when the entity is in the open world rather than inside a specific Cell. Overworld entities are spawn/despawned by proximity and do not participate in cell load/unload cycles.
+- `Custody: EntityCustody` — governs cleanup and persistence rules.
 
 ### EntityRegistry — additions required
 
@@ -552,7 +589,7 @@ The following are additions required to existing classes that are not yet implem
 
 ### Ped — additions required
 
-`Ped` currently can only be constructed from a live `INativePed`. A constructor from `PersistentPed` is required to support loading an unspawned ped from a save file (matching the `Vehicle(PersistentVehicle, VehicleCustody)` pattern that already exists).
+`Ped` currently can only be constructed from a live `INativePed`. A constructor from `PersistentPed` is required to support loading an unspawned ped from a save file (matching the `Vehicle(PersistentVehicle)` pattern that already exists).
 
 `Ped` also needs:
 - `_persistent: PersistentPed` backing field (parallel to `Vehicle._persistent`)
