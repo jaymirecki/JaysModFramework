@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using JaysModFramework.Core;
 using JaysModFramework.Core.Game;
 using JaysModFramework.Core.World.SaveLoad;
 
@@ -101,15 +102,17 @@ internal static class SmokeTestMenu
             var gameState = new GameState(game.NativeFramework.World);
             gameState.Load(smokeTestPath);
 
-            // TODO: Verify loaded state once Player methods are implemented
-            // Expected values:
-            // - Player model: trevor
-            // - Player position: (428, -982, 30.7)
-            // - Player heading: 270°
-            // - Player health: 200
-            // - Player armor: 100
-            // - World weather: Rain
-            // - World time: 12:00 (noon), January 1, 2012
+            // Verify loaded state
+            var player = game.NativeFramework.World.Player;
+            var playerPed = player.Ped;
+            var expectedPos = new Vector3(428.0f, -982.0f, 30.7f);
+
+            if (player.Model != "player_two")
+                throw new Exception($"Expected model 'player_two', got '{player.Model}'");
+            if (playerPed.Position != expectedPos)
+                throw new Exception($"Expected position {expectedPos}, got {playerPed.Position}");
+            if (playerPed.Heading != 270.0f)
+                throw new Exception($"Expected heading 270°, got {playerPed.Heading}°");
 
             game.Logger.Info("Smoke Test: Load test passed");
         }

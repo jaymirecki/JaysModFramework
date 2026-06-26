@@ -32,7 +32,13 @@ public class GameState
         _world.SetDateTime(worldState.DateTime);
 
         // 4. Apply player state (model, position, heading, health, armor)
-        // TODO: Implement once Player.SetModel() and property setters are added
+        // Model change must happen first (replaces native ped)
+        _world.Player.SetModel(playerState.Ped.Model);
+        var playerPed = _world.Player.Ped;
+        playerPed.Position = playerState.Ped.Position;
+        playerPed.Heading = playerState.Ped.Heading;
+        playerPed.Health = playerState.Ped.Health;
+        playerPed.Armor = playerState.Ped.Armor;
     }
 
     /// <summary>

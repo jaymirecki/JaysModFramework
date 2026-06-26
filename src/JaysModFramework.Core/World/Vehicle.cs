@@ -22,8 +22,6 @@ public class Vehicle : Entity, ISaveableVehicle
     }
 
     // INativeEntity
-    public override Vector3 Position => Native?.Position ?? _persistent.Position;
-    public override float Heading => Native?.Heading ?? _persistent.Heading;
     public override string ModelName => Native?.ModelName ?? _persistent.ModelName;
 
     // INativeVehicle

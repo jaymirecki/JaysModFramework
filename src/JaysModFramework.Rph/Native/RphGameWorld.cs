@@ -13,10 +13,10 @@ internal sealed class RphGameWorld : IGameWorld
     private readonly EntityRegistry _registry;
     private readonly CorePlayer _player;
 
-    internal RphGameWorld(EntityRegistry registry)
+    internal RphGameWorld(EntityRegistry registry, RphPlayer nativePlayer)
     {
         _registry = registry;
-        _player = new CorePlayer(() => new RphPed(Game.LocalPlayer.Character), registry);
+        _player = new CorePlayer(() => new RphPed(Game.LocalPlayer.Character), registry, nativePlayer);
     }
 
     public CorePlayer Player => _player;

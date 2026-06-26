@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <PlayerState>
   <Ped>
-    <Model>trevor</Model>
+    <Model>player_two</Model>
     <Position>
       <X>428.0</X>
       <Y>-982.0</Y>
       <Z>30.7</Z>
     </Position>
     <Heading>270.0</Heading>
-    <Health>200</Health>
-    <Armor>100</Armor>
+    <Health>175</Health>
+    <Armor>25</Armor>
   </Ped>
 </PlayerState>

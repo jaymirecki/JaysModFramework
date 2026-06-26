@@ -18,9 +18,27 @@ public class Ped : Entity
         _registry = registry;
     }
 
-    public override Vector3 Position => NativePed?.Position ?? default;
-    public override float Heading => NativePed?.Heading ?? default;
     public override string ModelName => NativePed?.ModelName ?? string.Empty;
+
+    public int Health
+    {
+        get => NativePed?.Health ?? default;
+        set
+        {
+            if (NativePed != null)
+                NativePed.Health = value;
+        }
+    }
+
+    public int Armor
+    {
+        get => NativePed?.Armor ?? default;
+        set
+        {
+            if (NativePed != null)
+                NativePed.Armor = value;
+        }
+    }
 
     /// <summary>
     /// The vehicle the ped is currently in, or null if on foot.

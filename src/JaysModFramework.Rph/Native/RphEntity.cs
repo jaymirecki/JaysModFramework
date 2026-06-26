@@ -10,8 +10,16 @@ internal abstract class RphEntity : INativeEntity
 
     protected RphEntity(RageEntity entity) => _entity = entity;
 
-    public Vector3 Position => new Vector3(_entity.Position.X, _entity.Position.Y, _entity.Position.Z);
-    public float Heading => _entity.Heading;
+    public Vector3 Position
+    {
+        get => new Vector3(_entity.Position.X, _entity.Position.Y, _entity.Position.Z);
+        set => _entity.Position = new Rage.Vector3(value.X, value.Y, value.Z);
+    }
+    public float Heading
+    {
+        get => _entity.Heading;
+        set => _entity.Heading = value;
+    }
     public string ModelName => _entity.Model.Name;
     public int Handle => (int)_entity.Handle.Value;
 

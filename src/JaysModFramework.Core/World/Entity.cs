@@ -16,8 +16,24 @@ public abstract class Entity : ISaveableEntity, IEquatable<Entity>
     public bool IsSpawned => Native != null;
     public int Handle => Native?.Handle ?? 0;
 
-    public abstract Vector3 Position { get; }
-    public abstract float Heading { get; }
+    public Vector3 Position
+    {
+        get => Native?.Position ?? default;
+        set
+        {
+            if (Native != null)
+                Native.Position = value;
+        }
+    }
+    public float Heading
+    {
+        get => Native?.Heading ?? default;
+        set
+        {
+            if (Native != null)
+                Native.Heading = value;
+        }
+    }
     public abstract string ModelName { get; }
 
     public bool Equals(Entity other)
