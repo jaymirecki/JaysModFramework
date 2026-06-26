@@ -20,16 +20,6 @@ public class Ped : Entity
 
     public override string ModelName => NativePed?.ModelName ?? string.Empty;
 
-    public int Health
-    {
-        get => NativePed?.Health ?? default;
-        set
-        {
-            if (NativePed != null)
-                NativePed.Health = value;
-        }
-    }
-
     public int Armor
     {
         get => NativePed?.Armor ?? default;

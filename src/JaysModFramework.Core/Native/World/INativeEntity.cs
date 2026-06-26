@@ -8,4 +8,5 @@ public interface INativeEntity : IEquatable<INativeEntity>
     float Heading { get; set; }
     string ModelName { get; }
     int Handle { get; }
+    int Health { get; set; }
 }

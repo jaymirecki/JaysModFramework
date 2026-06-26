@@ -22,6 +22,11 @@ internal abstract class RphEntity : INativeEntity
     }
     public string ModelName => _entity.Model.Name;
     public int Handle => (int)_entity.Handle.Value;
+    public int Health
+    {
+        get => _entity.Health;
+        set => _entity.Health = value;
+    }
 
     public bool Equals(INativeEntity other) => other is RphEntity rph && _entity == rph._entity;
     public override bool Equals(object obj) => obj is INativeEntity e && Equals(e);

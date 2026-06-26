@@ -34,6 +34,15 @@ public abstract class Entity : ISaveableEntity, IEquatable<Entity>
                 Native.Heading = value;
         }
     }
+    public int Health
+    {
+        get => Native?.Health ?? default;
+        set
+        {
+            if (Native != null)
+                Native.Health = value;
+        }
+    }
     public abstract string ModelName { get; }
 
     public bool Equals(Entity other)
