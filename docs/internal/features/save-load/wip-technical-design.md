@@ -278,7 +278,7 @@ Example `Peds/{guid}.xml`:
 </Ped>
 ```
 
-If `CurrentVehicleId` is present, it is resolved to a live vehicle after all entities have been registered (see Cross-Entity Reference Resolution below).
+Cross-entity vehicle references are resolved lazily — see [Cross-Entity Reference Resolution](#cross-entity-reference-resolution).
 
 ---
 
@@ -312,7 +312,7 @@ GameState.Save(savePath)
 
 ## Load Flow
 
-`GameState.Load()` both deserializes state from disk and applies it to the live game world. The only things it does not apply are character-specific setup steps driven by the new-game UI flow (e.g. `CharacterName`, model selection).
+`GameState.Load()` both deserializes state from disk and applies it to the live game world. The only things it does not apply are character-specific setup steps driven by the new-game UI flow (e.g. `CharacterName`, model selection on a new game).
 
 ```
 GameState.Load(savePath)
@@ -321,69 +321,87 @@ GameState.Load(savePath)
   │
   ├── 2. Deserialize PlayerState ← savePath/player.xml
   │
-  ├── 3. Deserialize SaveFlags ← savePath/flags.xml
-  │        Flags must be populated before entities are registered so that
-  │        spawn conditions referencing flags evaluate correctly.
+  ├── 3. Deserialize and apply SaveFlags ← savePath/flags.xml
+  │        Flags must be populated before spawning so that spawn conditions
+  │        referencing flags evaluate correctly in SpawnAll().
   │
-  ├── 4. Deserialize and register all entities (no spawning yet)
+  ├── 4. Deserialize and register all session-persistent entities (no spawning yet)
   │        4a. VehicleRegistryState.Load(savePath)
   │              Deserialize PersistentVehicle; construct Vehicle; register.
   │        4b. PedRegistryState.Load(savePath)
   │              Deserialize PersistentPed; construct Ped; register.
+  │              Each Ped stores its saved CurrentVehicleId as a backing field.
+  │              Resolution is lazy — no explicit cross-entity resolution step needed.
   │        4c. PropRegistryState.Load(savePath)
   │              Deserialize PersistentProp; construct Prop; register.
   │
-  ├── 5. Resolve cross-entity references
-  │        All entities are now registered — Guids can be resolved to managed objects.
-  │        (See Cross-Entity Reference Resolution below.)
+  ├── 5. Apply world properties
+  │        5a. Set game weather: _world.SetWeather(worldState.Weather)
+  │        5b. Set game time:    _world.SetDateTime(worldState.DateTime)
   │
-  ├── 6. Apply WorldState to the live game world
-  │        6a. Set game weather:   _world.SetWeather(worldState.Weather)
-  │        6b. Set game time:      _world.SetDateTime(worldState.DateTime)
-  │        6c. Load worldspace:    _world.LoadWorldspace(worldState.WorldspaceId)
-  │        6d. Load active map:    _world.LoadMap(worldState.ActiveMapId)
-  │              This activates required interiors and spawns map-local entities
-  │              (props, peds, vehicles defined in the map XML).
-  │
-  ├── 7. Apply PlayerState to the live player ped
-  │        7a. Set player model:   _world.Player.SetModel(playerState.Ped.ModelName)
+  ├── 6. Apply PlayerState to the live player ped
+  │        6a. Set player model:   _world.Player.SetModel(playerState.Ped.ModelName)
   │              Model change replaces the native ped — must happen before other properties.
-  │        7b. Copy ped properties: position, heading, health, armor, current vehicle, etc.
+  │        6b. Copy ped properties: position, heading, health, armor, current vehicle, etc.
   │
-  └── 8. EntityRegistry.SpawnAll()
-           Spawn all registered entities whose SpawnCondition is currently met,
-           in dependency order: Vehicles → Peds → Props.
-           When a ped with a CurrentVehicleId is spawned, its vehicle is already
-           live in the SpawnedVehicleRegistry and the ped is seated immediately.
+  └── 7. Load worldspace and active map
+           _world.LoadWorldspace(worldState.WorldspaceId)
+           _world.LoadMap(worldState.ActiveMapId)
+           Map loading:
+             a. Activates required interiors.
+             b. Registers map-local entities (props, peds, vehicles from map XML)
+                into the same EntityRegistry as session-persistent entities.
+             c. Calls SpawnAll() in dependency order: Vehicles → Peds → Props.
+                Spawns all registered entities (both session-persistent from step 4
+                and map-local from step 7b) whose SpawnCondition is currently met.
+                When a ped with a saved CurrentVehicleId is spawned, it resolves
+                and seats itself lazily (see Cross-Entity Reference Resolution).
 ```
 
-### Why Apply After Register
+### Why Register Before Loading the Map
 
-World application (step 6) and player application (step 7) are intentionally deferred until after all entities are deserialized and cross-references resolved (steps 4–5). This ensures:
-
-- Spawn conditions that reference save flags, worldspace, or other entities evaluate against a fully populated world state.
-- Player vehicle cross-references can be resolved before the player ped is placed in the world.
-- Map loading (step 6d) and `SpawnAll()` (step 8) both operate on a complete, consistent registry.
+Session-persistent entities (step 4) are registered before map loading (step 7) so that `SpawnAll()` — called by the map loader — sees the complete registry. This means a single `SpawnAll()` call handles both session-persistent and map-local entities, with no risk of double-spawning.
 
 ---
 
 ## Cross-Entity Reference Resolution
 
-After all entities are registered (step 7 above) but before spawning, cross-entity references are resolved. All Guids are in the registry at this point.
+There is no explicit cross-entity resolution step in the load flow. References are resolved lazily inside the entity, following the same live-backed pattern used for `Position` and `Heading`.
 
-```csharp
-// Resolve Ped.CurrentVehicle after all entities are registered
-foreach (var ped in _world.EntityRegistry.Peds)
-{
-    if (ped.Persistent.CurrentVehicleId is Guid vehicleId)
-    {
-        var vehicle = _world.EntityRegistry.GetVehicle(vehicleId);
-        ped.SetPendingVehicle(vehicle, ped.Persistent.CurrentVehicleSeatIndex ?? 0);
-    }
-}
+### Ped.CurrentVehicle — lazy resolution
+
+`Ped` stores `_currentVehicleId: Guid?` from its `PersistentPed` backing data. `CurrentVehicle` resolves differently depending on spawn state:
+
+```
+CurrentVehicle.get:
+  if spawned  → read from native ped (engine is source of truth)
+                registry-lookup the native vehicle handle if needed
+  if unspawned → resolve _currentVehicleId from EntityRegistry (lazy, cached)
+                 if not found: log warning, return null
 ```
 
-The vehicle reference and seat index are stored on the ped before spawning. Because `SpawnAll()` always spawns vehicles before peds, the vehicle is guaranteed to be live in `SpawnedVehicleRegistry` when the ped is spawned, and the ped is seated immediately. The reference is never a nested object and never a GTA handle.
+This matches the existing pattern for `Position` and `Heading`:
+
+```csharp
+// Existing pattern — same principle applies to CurrentVehicle
+Position.get => _native?.Position ?? _persistent.Position
+```
+
+### SyncLiveToPersistent
+
+Before despawn or save, `SyncLiveToPersistent()` updates `_persistent.CurrentVehicleId` from the live native state:
+
+```csharp
+_persistent.CurrentVehicleId = CurrentVehicle?.Id;   // null if ped is on foot
+```
+
+This ensures the saved vehicle reference always reflects the ped's actual state at save time, regardless of what happened after load (ped left the vehicle, vehicle was despawned, etc.).
+
+### On Spawn
+
+When a ped is spawned by `SpawnAll()`, if `CurrentVehicle` is non-null it warps the ped into the vehicle immediately. Because vehicles are always spawned before peds, the vehicle is guaranteed to already be live in `SpawnedVehicleRegistry` at this point. If the vehicle is not found despite `_currentVehicleId` being set, a warning is logged and the ped spawns on foot.
+
+The reference is never a nested object and never a GTA handle.
 
 ---
 
@@ -410,7 +428,7 @@ Using the same format means:
 
 ### New-Game Flow
 
-`GameState.Load()` is pure deserialization — it does not prompt for input or apply character customization. The new-game flow, implemented in the UI layer, wraps it:
+`GameState.Load()` does not prompt for input or make decisions — it fully deserializes and applies the save state to the world without any UI interaction. Character-specific setup (name, model) is applied by the caller after `Load()` returns. The new-game flow, implemented in the UI layer, wraps it:
 
 ```
 1. Player selects a template (e.g. "SanAndreas_Default")
@@ -512,6 +530,55 @@ The maximum slots per character is configured in `config.xml` under `<Framework>
 ```
 
 Default value: `3`.
+
+---
+
+## Implementation Notes
+
+The following are additions required to existing classes that are not yet implemented. They are part of this feature's scope.
+
+### PersistentEntity — additions required
+
+`PersistentEntity` currently has `Position`, `Heading`, and `ModelName`. This feature requires:
+- `Id: Guid` — stable framework identity, used as the save file name (`{guid}.xml`) and for cross-entity references.
+- `SpawnCondition` — evaluated by `SpawnAll()` to determine whether to spawn the entity.
+
+### EntityRegistry — additions required
+
+`EntityRegistry` currently only manages vehicles. Equivalent ped and prop dictionaries are required:
+- `Dictionary<Guid, Ped> PedRegistry`
+- `Dictionary<int, Ped> SpawnedPedRegistry`
+- Equivalent structures for props.
+
+### Ped — additions required
+
+`Ped` currently can only be constructed from a live `INativePed`. A constructor from `PersistentPed` is required to support loading an unspawned ped from a save file (matching the `Vehicle(PersistentVehicle, VehicleCustody)` pattern that already exists).
+
+`Ped` also needs:
+- `_persistent: PersistentPed` backing field (parallel to `Vehicle._persistent`)
+- `_currentVehicleId: Guid?` stored from `_persistent.CurrentVehicleId` on construction
+- `CurrentVehicle` property implementing lazy resolution: reads from native when spawned, resolves from registry when unspawned
+- `SyncLiveToPersistent()` updating `_persistent.CurrentVehicleId = CurrentVehicle?.Id`
+- Spawn logic: warp into `CurrentVehicle` if non-null after attaching native ped
+
+### Player — additions required
+
+The load and new-game flows call `_world.Player.SetModel(modelName)` and `_world.Player.SetName(characterName)`. Neither method exists on `Player` yet.
+
+### PlayerState.Ped.SpawnCondition
+
+`PlayerState` embeds a `PersistentPed`, which inherits `SpawnCondition` from `PersistentEntity`. The player ped is never subject to spawn conditions — it is always present in the world. `SpawnCondition` on `PlayerState.Ped` is always ignored during load.
+
+### SaveSlotManager and GameState.Save()
+
+`SaveSlotManager.Save(GameState gameState, string characterName)` is responsible for path resolution. It calls `GetNextSlot(characterName)` to determine the target folder (creating a new slot or selecting the oldest for overwrite), then delegates to `gameState.Save(slot.Path)`. The caller never needs to construct a save path directly.
+
+```
+SaveSlotManager.Save(gameState, "Michael")
+  │
+  ├── slot = GetNextSlot("Michael")   ← e.g. Michael_1/ (new) or Michael_1/ (oldest, to overwrite)
+  └── gameState.Save(slot.Path)       ← GameState writes all files into that folder
+```
 
 ---
 
