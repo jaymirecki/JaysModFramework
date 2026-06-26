@@ -85,11 +85,43 @@ One file per vehicle model definition. The vehicle class is stored inside the XM
 
 ## Saves/
 
-Player save files. See [Save/Load — Technical Design](../features/save-load/wip-technical-design.md).
+Player save files. Each save is a folder named `{CharacterName}_{n}` (e.g. `Michael_1`, `Michael_2`). Each character has up to `SaveSlotsPerCharacter` slots (default: 3); the oldest slot is overwritten when all slots are full.
+
+```
+Saves/
+  Michael_1/
+    world.xml
+    player.xml
+    flags.xml
+    Vehicles/
+      {guid}.xml
+    Peds/
+      {guid}.xml
+    Props/
+      {guid}.xml
+  Michael_2/
+  Michael_3/
+  Alex_1/
+```
+
+See [Save/Load — Technical Design](../features/save-load/wip-technical-design.md).
 
 ## Templates/
 
-Template saves used when starting a new game. Exact structure TBD.
+Starting-state templates used when beginning a new game. Templates use the **identical folder structure** as saves, so `GameState.Load()` works for both without modification. `player.xml` in a template leaves `CharacterName` empty — the new-game flow sets it after loading.
+
+```
+Templates/
+  SanAndreas_Default/
+    world.xml
+    player.xml        ← CharacterName empty
+    flags.xml
+    Vehicles/
+    Peds/
+    Props/
+```
+
+See [Save/Load — Technical Design](../features/save-load/wip-technical-design.md).
 
 ## Related Documentation
 
