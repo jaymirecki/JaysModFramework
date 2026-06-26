@@ -17,7 +17,7 @@ The entity system manages framework-owned game objects (props, vehicles, peds). 
 - A stable GUID identity that survives sessions.
 - Bridging between stable IDs and ephemeral GTA runtime handles.
 - Conditional spawning based on world state.
-- A vehicle custody model for player-map ownership handoff.
+- A custody model governing entity lifecycle and cleanup rules.
 - Transparent access to entity properties whether or not the entity is currently spawned in the world.
 
 ---
@@ -45,7 +45,7 @@ IManagedEntity : INativeEntity
          △                         △
          │                         │
 IManagedPed                   IManagedVehicle : INativeVehicle, IManagedEntity
-  : INativePed, IManagedEntity └── Custody: VehicleCustody
+  : INativePed, IManagedEntity └── Custody: EntityCustody
 ```
 
 Plugins and other consumers program against `IManagedVehicle` and `IManagedPed`. They have no concept of `RphVehicle` or `PersistentVehicle` — they simply call `vehicle.SirenState` and check `vehicle.IsSpawned` if they need to guard against an unspawned entity.
@@ -83,6 +83,9 @@ The Core layer owns persistence, identity, and lifecycle. It references Rph type
 ```
 PersistentEntity (abstract)
 └── Backing fields for all INativeEntity properties (position, heading, etc.)
+    Cell tracking: BornInCellId (the Cell that spawned this entity; never changes),
+    CurrentCellId (null for overworld entities), IsInOverworld.
+    Custody: EntityCustody (governs lifecycle and cleanup rules).
     This is the serializable snapshot — what gets written to and read from XML.
 
 PersistentVehicle : PersistentEntity
@@ -142,7 +145,7 @@ Ped.Vehicle (Core):
                   VehicleRegistry[vehicle.Id] = vehicle   // register so it can be saved
                   SpawnedVehicleRegistry[rphVehicle.Handle] = vehicle
                   return vehicle
-                  IsSpawned always true. Custody starts at MapOwned.
+                  IsSpawned always true. Custody starts at Transient.
 ```
 
 Plugins always receive an `IManagedVehicle` regardless of whether the vehicle is framework-managed or ambient. For ambient traffic `IsSpawned` is always true. For managed vehicles, `IsSpawned` reflects whether the framework has spawned it.
@@ -172,42 +175,44 @@ EntityRegistry.Despawn(vehicle: Vehicle):
 
 ---
 
-## Vehicle Custody Model
+## Entity Custody
+
+Custody determines the cleanup and persistence rules that apply to an entity. It is separate from ownership — which character or player has a relationship to the entity is a gameplay concern tracked elsewhere, not in custody.
 
 ```csharp
-public enum VehicleCustody
+public enum EntityCustody
 {
-    MapOwned,       // Spawned by map; player has not interacted with it.
-    PlayerCustody,  // Player has driven it away; framework will not despawn it.
-    PlayerOwned,    // Player has explicitly claimed it; persists across sessions.
+    Transient,    // Despawn when beyond player distance threshold. Never saved. Used for ambient traffic.
+    CellOwned,    // Belongs to its birth Cell. Deregistered on cell reset. Saved between resets.
+    Unclaimed,    // Detached from birth Cell. Cleaned up after N in-game days beyond player range. Saved.
+    Persistent,   // Never cleaned up by the framework. Always saved.
 }
 ```
 
-| From | To | Trigger |
-|---|---|---|
-| `MapOwned` | `PlayerCustody` | Player enters and drives beyond a distance threshold, or map tries to reset while player is inside |
-| `PlayerCustody` | `PlayerOwned` | Player explicitly stores the vehicle |
-| `PlayerCustody` | Cleanup | Player out of vehicle for X time AND beyond Y distance |
-| `PlayerOwned` | — | Never cleaned up by map resets |
+| Transition | Trigger |
+|---|---|
+| `CellOwned` → `Unclaimed` | Player takes the entity away from its birth Cell (e.g. drives a vehicle beyond a distance threshold). |
+| `Unclaimed` → `Persistent` | Player explicitly stores or claims the entity. |
+| `Unclaimed` → deregistered | Entity has been beyond player range for N in-game days (nightly cleanup check). |
+| `Transient` → despawned | Entity goes beyond the distance threshold from the player. |
 
-Trainer-spawned vehicles are set to `PlayerOwned` immediately on spawn.
+Trainer-spawned entities are set to `Persistent` immediately on spawn.
 
 ---
 
 ## Entity Persistence
 
-Every `Vehicle` has a `PersistentVehicle`. Whether that backing store is written to disk depends on whether the vehicle is in `VehicleRegistry` at save time — not on how it was originally created.
+Every `Vehicle` has a `PersistentVehicle`. Whether that backing store is written to disk is determined by custody — not by how the entity was originally created.
 
-| Category | In VehicleRegistry | Notes |
-|---|---|---|
-| Player-owned | Yes | Always included in save. Restored on next session load. |
-| Map-local | Yes | Included in save. Respawned when map loads; `MapOwned` custody means the map can reset them. |
-| Ambient (unwrapped) | No | Never seen by the framework; no `Vehicle` object exists. |
-| Ambient (wrapped) | Lazily, on first encounter | Included in save if in registry at save time. `MapOwned` custody; cleaned up by the custody system once conditions are met. |
+| Custody | In Registry | In Save File | Notes |
+|---|---|---|---|
+| `Persistent` | Yes | Always | Restored on every session load. Never cleaned up. |
+| `CellOwned` | Yes (until reset) | Until reset | Saved between resets. Deregistered on cell reset; recreated from Map XML on next cell load. |
+| `Unclaimed` | Yes | Until cleanup | Saved until the cleanup threshold is met (N in-game days beyond player range). |
+| `Transient` | Lazily, on first encounter | Never | Despawned when beyond player distance; not saved. Covers ambient traffic wrapped by the framework. |
+| Ambient (unwrapped) | No | Never | Never seen by the framework; no entity object exists. |
 
-The custody state on load determines what happens to ambient vehicles from a prior session: `MapOwned` vehicles that have been out of range for long enough are cleaned up before the player sees them; those still nearby are respawned.
-
-Save files serialize the `PersistentVehicle` (and equivalent persistent types) only — never handles. On load:
+Save files serialize `PersistentVehicle` (and equivalent persistent types) only — never handles. On load:
 1. Deserialize from XML into `PersistentVehicle`.
 2. Construct `Vehicle` from persistent data and register.
 3. Call `SpawnAll()` — spawns entities whose conditions are met.
