@@ -1,0 +1,57 @@
+# Ped.Clone Method
+
+﻿Ped.Clone Method 
+
+|  |  |  |
+| --- | --- | --- |
+| PedClone Method | RAGE Plugin Hook Documentation |  |
+
+[This is preliminary documentation and is subject to change.]
+
+[Missing <summary> documentation for "M:Rage.Ped.Clone"]
+
+**Namespace:**
+ [Rage](N_Rage.htm)  
+**Assembly:**
+ RagePluginHook (in RagePluginHook.dll) Version: 0.0.0.0 (0.56.1131.11510)
+
+Syntax
+
+[C#](#)
+
+[VB](#)
+
+[C++](#)
+
+[Copy](# "Copy")
+
+```
+public Ped Clone()
+```
+
+```
+Public Function Clone As Ped
+```
+
+```
+public:
+Ped^ Clone()
+```
+
+#### Return Value
+
+Type: [Ped](T_Rage_Ped.htm)  
+
+[Missing <returns> documentation for "M:Rage.Ped.Clone"]
+
+See Also
+
+#### Reference
+
+[Ped Class](T_Rage_Ped.htm)
+
+[Rage Namespace](N_Rage.htm)
+
+This version of the documentation applies to RAGE Plugin Hook v0.56.1131.11508 ALPHA
+
+Copyright 2015-2017 © MulleDK19 / LMS ® All rights reserved.
