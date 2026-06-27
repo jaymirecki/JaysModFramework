@@ -10,7 +10,7 @@ internal sealed class RphPed : RphEntity, INativePed
 
     internal RphPed(RagePed ped) : base(ped) => _ped = ped;
 
-    public INativeVehicle? Vehicle
+    public INativeVehicle? CurrentVehicle
     {
         get
         {

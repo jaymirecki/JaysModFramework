@@ -45,7 +45,7 @@ public class SirenManagerPlugin : MenuPlugin
 
     private void OnTick()
     {
-        var vehicle = _framework.Game.Player.Ped.Vehicle;
+        var vehicle = _framework.Game.Player.Ped.CurrentVehicle;
         if (Equals(vehicle, _currentVehicle)) return;
 
         _currentVehicle = vehicle;

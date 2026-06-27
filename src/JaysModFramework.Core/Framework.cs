@@ -12,7 +12,7 @@ public class Framework
 {
     internal INativeFramework NativeFramework { get; }
     public GameServices Game { get; }
-    public IGameWorld World => NativeFramework.World;
+    public WorldService World { get; }
     public EntityRegistry EntityRegistry { get; } = new EntityRegistry();
     public FrameworkData Data { get; }
     public InteractionMenu InteractionMenu { get; }
@@ -20,6 +20,7 @@ public class Framework
     public Framework(INativeFramework nativeFramework)
     {
         NativeFramework = nativeFramework;
+        World = new WorldService(this);
         Game = new GameServices(this);
         Data = new FrameworkData(nativeFramework.GameDirectory);
 
@@ -29,23 +30,5 @@ public class Framework
         Game.PluginManager.InitializeAll(this);
 
         InteractionMenu = new InteractionMenu(this);
-    }
-
-    /// <summary>
-    /// Spawns a vehicle, wraps the native result as a <see cref="Vehicle"/>, and
-    /// registers it with the <see cref="EntityRegistry"/>. The native world layer
-    /// only performs the native spawn — wrapping and registry bookkeeping (and, in
-    /// future, removing entities on despawn) is the framework's responsibility.
-    /// </summary>
-    public Vehicle SpawnVehicle(string modelName, Vector3 position, float heading)
-    {
-        var native = World.SpawnVehicle(modelName, position, heading);
-        var persistent = PersistentVehicle.From(native);
-        var vehicle = new Vehicle(persistent, VehicleCustody.PlayerOwned);
-        vehicle.Attach(native);
-
-        EntityRegistry.Register(vehicle);
-        EntityRegistry.AddToSpawnedRegistry(vehicle.Handle, vehicle);
-        return vehicle;
     }
 }

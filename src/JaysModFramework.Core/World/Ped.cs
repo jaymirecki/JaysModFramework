@@ -10,15 +10,30 @@ namespace JaysModFramework.Core.World;
 public class Ped : Entity
 {
     private INativePed? NativePed => Native as INativePed;
+    private PersistentPed PersistentPed => (PersistentPed)Persistent!;
     private readonly Framework _framework;
+    private readonly bool IsPlayerPed;
 
+    public Ped(Framework framework): this(framework, new PersistentPed()) {}
+
+    internal Ped(Framework framework, PersistentPed persistent) {
+        _framework = framework;
+        Persistent = persistent;
+        _framework.EntityRegistry.Register(this);
+        IsPlayerPed = false;
+    }
+
+    /// <summary>
+    /// Carve-out for the player ped, which should never be added to the
+    /// <see cref="EntityRegistry"/> — the framework does not manage the player
+    /// like it manages NPC peds.
+    /// </summary>
     internal Ped(Framework framework, INativePed nativePed)
     {
         _framework = framework;
+        IsPlayerPed = true;
         Native = nativePed;
     }
-
-    public override string ModelName => NativePed?.ModelName ?? string.Empty;
 
     public int Armor
     {
@@ -34,23 +49,21 @@ public class Ped : Entity
     /// The vehicle the ped is currently in, or null if on foot.
     /// Performs a registry lookup so ambient vehicles are wrapped and registered on first encounter.
     /// </summary>
-    public Vehicle? Vehicle
+    public Vehicle? CurrentVehicle
     {
         get
         {
-            var native = NativePed?.Vehicle;
-            if (native == null) return null;
-
-            var registry = _framework.EntityRegistry;
-            if (registry.TryGetByHandle(native.Handle, out var managed))
+            Vehicle managed;
+            if (NativePed != null) {
+                if (NativePed.CurrentVehicle == null) return null;
+                if (_framework.EntityRegistry.TryGetByHandle(NativePed.CurrentVehicle.Handle, out managed))
+                    return managed;
+                return null;
+            }
+            
+            if (_framework.EntityRegistry.TryGetById(PersistentPed.CurrentVehicleId, out managed))
                 return managed;
-
-            var persistent = PersistentVehicle.From(native);
-            var vehicle = new Vehicle(persistent, VehicleCustody.MapOwned);
-            vehicle.Attach(native);
-            registry.Register(vehicle);
-            registry.AddToSpawnedRegistry(native.Handle, vehicle);
-            return vehicle;
+            return null;
         }
     }
 

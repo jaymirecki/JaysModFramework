@@ -1,3 +1,5 @@
+using System;
+
 namespace JaysModFramework.Core.World.SaveLoad;
 
 /// <summary>
@@ -25,7 +27,14 @@ public class GameState
         var worldState = _worldSerializer.Deserialize(savePath);
 
         // 2. Deserialize PlayerState ← savePath/player.xml
-        var playerState = _playerSerializer.Deserialize(savePath);
+        PlayerState playerState;
+        try {
+            playerState = _playerSerializer.Deserialize(savePath);
+        }
+        catch (Exception ex) {
+            _framework.Game.Logger.Error($"Loading player state failed - {ex}");
+            return;
+        }
 
         // 3. Apply world properties (weather, datetime)
         _framework.World.SetWeather(worldState.Weather);
@@ -33,7 +42,7 @@ public class GameState
 
         // 4. Apply player state (model, position, heading, health, armor)
         // Model change must happen first (replaces native ped)
-        _framework.Game.Player.SetModel(playerState.Ped.Model);
+        _framework.Game.Player.SetModel(playerState.Ped.ModelName);
         var playerPed = _framework.Game.Player.Ped;
         playerPed.Position = playerState.Ped.Position;
         playerPed.Heading = playerState.Ped.Heading;

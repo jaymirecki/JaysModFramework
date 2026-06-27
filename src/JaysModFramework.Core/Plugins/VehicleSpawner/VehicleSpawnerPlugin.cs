@@ -34,7 +34,8 @@ public class VehicleSpawnerPlugin : MenuPlugin
                 {
                     menuService.HideMenu();
                     var ped = services.Game.Player.Ped;
-                    var vehicle = services.SpawnVehicle(modelName, ped.Position, ped.Heading);
+                    var vehicle = new Vehicle(services, modelName, ped.Position, ped.Heading, VehicleCustody.PlayerOwned);
+                    vehicle.Spawn();
                     ped.WarpIntoVehicle(vehicle, VehicleSeat.Driver);
                 };
 

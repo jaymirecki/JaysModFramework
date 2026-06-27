@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <PlayerState>
   <Ped>
-    <Model>player_two</Model>
+    <ModelName>player_two</ModelName>
     <Position>
       <X>428.0</X>
       <Y>-982.0</Y>

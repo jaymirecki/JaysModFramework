@@ -5,7 +5,7 @@ namespace JaysModFramework.Core.Native;
 public interface INativePed : INativeEntity
 {
     /// <summary>The vehicle the ped is currently in, or null if on foot.</summary>
-    INativeVehicle? Vehicle { get; }
+    INativeVehicle? CurrentVehicle { get; }
 
     /// <summary>Gets or sets the ped's armor.</summary>
     int Armor { get; set; }
