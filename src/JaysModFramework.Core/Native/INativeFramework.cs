@@ -13,5 +13,5 @@ public interface INativeFramework
     INativeUIService UIService { get; }
     INativeLifecycle Lifecycle { get; }
     IGameWorld World { get; }
-    INativePlayer Player { get; }
+    INativeGame Game { get; }
 }

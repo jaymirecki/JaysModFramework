@@ -3,6 +3,7 @@ using JaysModFramework.Core.Native;
 using JaysModFramework.Core.Game.Settings;
 using JaysModFramework.Core.Plugins;
 using JaysModFramework.Core.UI;
+using JaysModFramework.Core.World;
 
 namespace JaysModFramework.Core.Game;
 
@@ -14,16 +15,18 @@ public class GameServices
     public MenuService MenuService { get; }
     public INativeLifecycle Lifecycle { get; }
     public PluginManager PluginManager { get; }
+    public Player Player { get; }
 
-    internal GameServices(INativeFramework nativeFramework)
+    internal GameServices(Framework framework)
     {
-        NativeFramework = nativeFramework;
-        var configPath = Path.Combine(nativeFramework.GameDirectory, "JMF", "config.xml");
+        NativeFramework = framework.NativeFramework;
+        var configPath = Path.Combine(NativeFramework.GameDirectory, "JMF", "config.xml");
         Settings = FrameworkConfig.Load(configPath);
         Logger = new Logger(this);
-        MenuService = new MenuService(nativeFramework.UIService);
-        Lifecycle = nativeFramework.Lifecycle;
+        MenuService = new MenuService(NativeFramework.UIService);
+        Lifecycle = NativeFramework.Lifecycle;
         PluginManager = new PluginManager();
+        Player = new Player(framework, NativeFramework.Game.Player);
         Logger.Info($"Settings loaded from {configPath}");
     }
 }

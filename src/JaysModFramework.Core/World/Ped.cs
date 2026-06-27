@@ -10,12 +10,12 @@ namespace JaysModFramework.Core.World;
 public class Ped : Entity
 {
     private INativePed? NativePed => Native as INativePed;
-    private readonly EntityRegistry _registry;
+    private readonly Framework _framework;
 
-    internal Ped(INativePed nativePed, EntityRegistry registry)
+    internal Ped(Framework framework, INativePed nativePed)
     {
+        _framework = framework;
         Native = nativePed;
-        _registry = registry;
     }
 
     public override string ModelName => NativePed?.ModelName ?? string.Empty;
@@ -41,14 +41,15 @@ public class Ped : Entity
             var native = NativePed?.Vehicle;
             if (native == null) return null;
 
-            if (_registry.TryGetByHandle(native.Handle, out var managed))
+            var registry = _framework.EntityRegistry;
+            if (registry.TryGetByHandle(native.Handle, out var managed))
                 return managed;
 
             var persistent = PersistentVehicle.From(native);
             var vehicle = new Vehicle(persistent, VehicleCustody.MapOwned);
             vehicle.Attach(native);
-            _registry.Register(vehicle);
-            _registry.AddToSpawnedRegistry(native.Handle, vehicle);
+            registry.Register(vehicle);
+            registry.AddToSpawnedRegistry(native.Handle, vehicle);
             return vehicle;
         }
     }

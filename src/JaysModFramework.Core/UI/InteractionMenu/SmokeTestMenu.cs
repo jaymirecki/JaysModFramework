@@ -1,15 +1,14 @@
 using System;
 using System.IO;
-using JaysModFramework.Core;
-using JaysModFramework.Core.Game;
 using JaysModFramework.Core.World.SaveLoad;
 
 namespace JaysModFramework.Core.UI.InteractionMenu;
 
 internal static class SmokeTestMenu
 {
-    internal static Menu Build(GameServices game)
+    internal static Menu Build(Framework framework)
     {
+        var game = framework.Game;
         var menu = new Menu { BannerText = "JMF Smoke", Title = "Smoke Test Menu" };
 
         var exampleItem = new MenuItem
@@ -57,15 +56,16 @@ internal static class SmokeTestMenu
         };
         menu.Add(toggleItem);
 
-        menu.AddSubmenu(BuildSaveLoadTestsMenu(game));
+        menu.AddSubmenu(BuildSaveLoadTestsMenu(framework));
 
         return menu;
     }
 
-    private static Menu BuildSaveLoadTestsMenu(GameServices game)
+    private static Menu BuildSaveLoadTestsMenu(Framework framework)
     {
+        var game = framework.Game;
         var menu = new Menu { BannerText = "JMF Smoke", Title = "Save/Load Tests" };
-        var gameDirectory = game.NativeFramework.GameDirectory;
+        var gameDirectory = framework.NativeFramework.GameDirectory;
         var smokeTestPath = Path.Combine(gameDirectory, "JMF", "Saves", "SmokeTest_1");
 
         var loadTestItem = new MenuItem
@@ -73,7 +73,7 @@ internal static class SmokeTestMenu
             Title = "Load Smoke Save",
             Description = "Loads the smoke test save and verifies player/world properties.",
         };
-        loadTestItem.OnActivated += () => RunLoadSmokeTest(game, smokeTestPath);
+        loadTestItem.OnActivated += () => RunLoadSmokeTest(framework, smokeTestPath);
         menu.Add(loadTestItem);
 
         var saveRoundTripItem = new MenuItem
@@ -81,14 +81,15 @@ internal static class SmokeTestMenu
             Title = "Load, Save, and Verify",
             Description = "Loads smoke save, saves to temp, reloads, and verifies.",
         };
-        saveRoundTripItem.OnActivated += () => RunSaveRoundTripTest(game, smokeTestPath, gameDirectory);
+        saveRoundTripItem.OnActivated += () => RunSaveRoundTripTest(framework, smokeTestPath, gameDirectory);
         menu.Add(saveRoundTripItem);
 
         return menu;
     }
 
-    private static void RunLoadSmokeTest(GameServices game, string smokeTestPath)
+    private static void RunLoadSmokeTest(Framework framework, string smokeTestPath)
     {
+        var game = framework.Game;
         game.Logger.Info("Smoke Test: Starting load test...");
 
         if (!Directory.Exists(smokeTestPath))
@@ -99,11 +100,11 @@ internal static class SmokeTestMenu
 
         try
         {
-            var gameState = new GameState(game.NativeFramework.World);
+            var gameState = new GameState(framework);
             gameState.Load(smokeTestPath);
 
             // Verify loaded state
-            var player = game.NativeFramework.World.Player;
+            var player = framework.Game.Player;
             var playerPed = player.Ped;
             var expectedPos = new Vector3(428.0f, -982.0f, 30.7f);
 
@@ -122,8 +123,9 @@ internal static class SmokeTestMenu
         }
     }
 
-    private static void RunSaveRoundTripTest(GameServices game, string smokeTestPath, string gameDirectory)
+    private static void RunSaveRoundTripTest(Framework framework, string smokeTestPath, string gameDirectory)
     {
+        var game = framework.Game;
         game.Logger.Info("Smoke Test: Starting save and round-trip test...");
 
         if (!Directory.Exists(smokeTestPath))
@@ -137,14 +139,14 @@ internal static class SmokeTestMenu
             var tempSavePath = Path.Combine(gameDirectory, "JMF", "Saves", "SmokeTest_Tmp");
 
             // Load original save
-            var gameState = new GameState(game.NativeFramework.World);
+            var gameState = new GameState(framework);
             gameState.Load(smokeTestPath);
 
             // Save to temp location
             gameState.Save(tempSavePath);
 
             // Load temp save
-            var tempGameState = new GameState(game.NativeFramework.World);
+            var tempGameState = new GameState(framework);
             tempGameState.Load(tempSavePath);
 
             // TODO: Verify round-tripped state matches original

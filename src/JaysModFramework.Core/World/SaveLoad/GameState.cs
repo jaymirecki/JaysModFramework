@@ -6,13 +6,13 @@ namespace JaysModFramework.Core.World.SaveLoad;
 /// </summary>
 public class GameState
 {
-    private readonly IGameWorld _world;
+    private readonly Framework _framework;
     private readonly WorldStateSerializer _worldSerializer = new();
     private readonly PlayerStateSerializer _playerSerializer = new();
 
-    public GameState(IGameWorld world)
+    public GameState(Framework framework)
     {
-        _world = world;
+        _framework = framework;
     }
 
     /// <summary>
@@ -28,13 +28,13 @@ public class GameState
         var playerState = _playerSerializer.Deserialize(savePath);
 
         // 3. Apply world properties (weather, datetime)
-        _world.SetWeather(worldState.Weather);
-        _world.SetDateTime(worldState.DateTime);
+        _framework.World.SetWeather(worldState.Weather);
+        _framework.World.SetDateTime(worldState.DateTime);
 
         // 4. Apply player state (model, position, heading, health, armor)
         // Model change must happen first (replaces native ped)
-        _world.Player.SetModel(playerState.Ped.Model);
-        var playerPed = _world.Player.Ped;
+        _framework.Game.Player.SetModel(playerState.Ped.Model);
+        var playerPed = _framework.Game.Player.Ped;
         playerPed.Position = playerState.Ped.Position;
         playerPed.Heading = playerState.Ped.Heading;
         playerPed.Health = playerState.Ped.Health;

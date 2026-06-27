@@ -1,26 +1,19 @@
+using JaysModFramework.Core.Native;
 using JaysModFramework.Core.World;
 using Rage;
-using CorePlayer = JaysModFramework.Core.World.Player;
-using CoreVehicle = JaysModFramework.Core.World.Vehicle;
 using Vector3 = JaysModFramework.Core.Vector3;
 using GameDateTime = JaysModFramework.Core.World.GameDateTime;
 using CoreWeatherType = JaysModFramework.Core.World.WeatherType;
 
 namespace JaysModFramework.Rph.Native;
 
+/// <summary>
+/// Native-only world implementation. Deals exclusively in INative* types — wrapping
+/// results into Core domain objects (Player, Vehicle) and any registry bookkeeping
+/// is the JMF Framework's responsibility, not this class's.
+/// </summary>
 internal sealed class RphGameWorld : IGameWorld
 {
-    private readonly EntityRegistry _registry;
-    private readonly CorePlayer _player;
-
-    internal RphGameWorld(EntityRegistry registry, RphPlayer nativePlayer)
-    {
-        _registry = registry;
-        _player = new CorePlayer(() => new RphPed(Game.LocalPlayer.Character), registry, nativePlayer);
-    }
-
-    public CorePlayer Player => _player;
-
     public void SetWeather(CoreWeatherType weather)
     {
         var rageWeather = weather switch
@@ -43,7 +36,7 @@ internal sealed class RphGameWorld : IGameWorld
         World.DateTime = dateTimeValue;
     }
 
-    public CoreVehicle SpawnVehicle(string modelName, Vector3 position, float heading)
+    public INativeVehicle SpawnVehicle(string modelName, Vector3 position, float heading)
     {
         var ragePosition = new Rage.Vector3(position.X, position.Y, position.Z);
 
@@ -51,14 +44,6 @@ internal sealed class RphGameWorld : IGameWorld
         model.LoadAndWait();
 
         var rageVehicle = new Rage.Vehicle(model, ragePosition, heading);
-        var native = new RphVehicle(rageVehicle);
-
-        var persistent = PersistentVehicle.From(native);
-        var vehicle = new CoreVehicle(persistent, VehicleCustody.PlayerOwned);
-        vehicle.Attach(native);
-        _registry.Register(vehicle);
-        _registry.AddToSpawnedRegistry(native.Handle, vehicle);
-
-        return vehicle;
+        return new RphVehicle(rageVehicle);
     }
 }
