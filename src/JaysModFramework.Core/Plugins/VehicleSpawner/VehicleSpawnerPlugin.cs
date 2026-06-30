@@ -14,7 +14,6 @@ public class VehicleSpawnerPlugin : MenuPlugin
 
     public override void Initialize(Framework services)
     {
-        var world = services.World;
         var menuService = services.Game.MenuService;
         var vehicleModels = services.Data.Models.Vehicles;
 
@@ -34,8 +33,9 @@ public class VehicleSpawnerPlugin : MenuPlugin
                 item.OnActivated += () =>
                 {
                     menuService.HideMenu();
-                    var ped = world.Player.Ped;
-                    var vehicle = world.SpawnVehicle(modelName, ped.Position, ped.Heading);
+                    var ped = services.Game.Player.Ped;
+                    var vehicle = new Vehicle(services, modelName, ped.Position, ped.Heading, VehicleCustody.PlayerOwned);
+                    vehicle.Spawn();
                     ped.WarpIntoVehicle(vehicle, VehicleSeat.Driver);
                 };
 

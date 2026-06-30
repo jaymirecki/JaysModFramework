@@ -1,11 +1,10 @@
-using JaysModFramework.Core.Game;
 using JaysModFramework.Core.World;
 
 namespace JaysModFramework.Core.UI.InteractionMenu;
 
 internal static class DebugMenu
 {
-    internal static Menu Build(GameServices game, IGameWorld world)
+    internal static Menu Build(Framework framework)
     {
         var menu = new Menu { BannerText = "JMF", Title = "Debug" };
 
@@ -16,10 +15,10 @@ internal static class DebugMenu
         };
         showPos.OnActivated += () =>
         {
-            var ped = world.Player.Ped;
-            Entity entity = ped.Vehicle as Entity ?? ped;
+            var ped = framework.Game.Player.Ped;
+            Entity entity = ped.CurrentVehicle as Entity ?? ped;
             var pos = entity.Position;
-            game.Logger.Debug($"Position: X={pos.X:F2}, Y={pos.Y:F2}, Z={pos.Z:F2}");
+            framework.Game.Logger.Debug($"Position: X={pos.X:F2}, Y={pos.Y:F2}, Z={pos.Z:F2}");
         };
 
         var logModel = new MenuItem
@@ -29,21 +28,21 @@ internal static class DebugMenu
         };
         logModel.OnActivated += () =>
         {
-            var ped = world.Player.Ped;
-            Entity entity = ped.Vehicle as Entity ?? ped;
-            game.Logger.Debug($"Model: {entity.ModelName}");
+            var ped = framework.Game.Player.Ped;
+            Entity entity = ped.CurrentVehicle as Entity ?? ped;
+            framework.Game.Logger.Debug($"Model: {entity.ModelName}");
         };
 
         menu.Add(showPos);
         menu.Add(logModel);
 
-        var smokeTestMenu = SmokeTestMenu.Build(game);
+        var smokeTestMenu = SmokeTestMenu.Build(framework);
         var smokeTestItem = new MenuItem
         {
             Title = "Smoke Test Menu",
             Description = "Close this menu and open the smoke test menu.",
         };
-        smokeTestItem.OnActivated += () => game.MenuService.ShowMenu(smokeTestMenu);
+        smokeTestItem.OnActivated += () => framework.Game.MenuService.ShowMenu(smokeTestMenu);
         menu.Add(smokeTestItem);
 
         return menu;

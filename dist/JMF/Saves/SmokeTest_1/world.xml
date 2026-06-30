@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<WorldState>
+  <WorldspaceId>SanAndreas</WorldspaceId>
+  <Weather>Rain</Weather>
+  <DateTime>
+    <Hour>12</Hour>
+    <Minute>0</Minute>
+    <Day>1</Day>
+    <Month>1</Month>
+    <Year>2012</Year>
+  </DateTime>
+</WorldState>

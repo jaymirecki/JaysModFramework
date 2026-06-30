@@ -7,8 +7,8 @@ namespace JaysModFramework.Core.Plugins.Sirens;
 
 public class SirenManagerPlugin : MenuPlugin
 {
+    private Framework _framework;
     private GameServices _game;
-    private IGameWorld _world;
     private Vehicle _currentVehicle;
     private SirenState _sirenState = SirenState.Off;
     private readonly MenuListItem<SirenState> _sirenListItem;
@@ -30,8 +30,8 @@ public class SirenManagerPlugin : MenuPlugin
 
     public override void Initialize(Framework services)
     {
+        _framework = services;
         _game = services.Game;
-        _world = services.World;
 
         _game.Lifecycle.Tick += OnTick;
         _game.Lifecycle.ControlClicked += OnControlClicked;
@@ -45,7 +45,7 @@ public class SirenManagerPlugin : MenuPlugin
 
     private void OnTick()
     {
-        var vehicle = _world.Player.Ped.Vehicle;
+        var vehicle = _framework.Game.Player.Ped.CurrentVehicle;
         if (Equals(vehicle, _currentVehicle)) return;
 
         _currentVehicle = vehicle;

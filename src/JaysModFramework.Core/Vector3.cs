@@ -1,10 +1,17 @@
+using System.Xml.Serialization;
+
 namespace JaysModFramework.Core;
 
 public struct Vector3
 {
-    public float X { get; }
-    public float Y { get; }
-    public float Z { get; }
+    [XmlElement("X")]
+    public float X { get; set; }
+
+    [XmlElement("Y")]
+    public float Y { get; set; }
+
+    [XmlElement("Z")]
+    public float Z { get; set; }
 
     public Vector3(float x, float y, float z)
     {

@@ -12,14 +12,16 @@ public class Framework
 {
     internal INativeFramework NativeFramework { get; }
     public GameServices Game { get; }
-    public IGameWorld World => NativeFramework.World;
+    public WorldService World { get; }
+    public EntityRegistry EntityRegistry { get; } = new EntityRegistry();
     public FrameworkData Data { get; }
     public InteractionMenu InteractionMenu { get; }
 
     public Framework(INativeFramework nativeFramework)
     {
         NativeFramework = nativeFramework;
-        Game = new GameServices(nativeFramework);
+        World = new WorldService(this);
+        Game = new GameServices(this);
         Data = new FrameworkData(nativeFramework.GameDirectory);
 
         // Register and initialize plugins before building menus so plugin menus are available

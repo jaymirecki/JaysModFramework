@@ -10,13 +10,19 @@ internal sealed class RphPed : RphEntity, INativePed
 
     internal RphPed(RagePed ped) : base(ped) => _ped = ped;
 
-    public INativeVehicle? Vehicle
+    public INativeVehicle? CurrentVehicle
     {
         get
         {
             var vehicle = _ped.CurrentVehicle;
             return vehicle != null && vehicle.Exists() ? new RphVehicle(vehicle) : null;
         }
+    }
+
+    public int Armor
+    {
+        get => _ped.Armor;
+        set => _ped.Armor = value;
     }
 
     public void WarpIntoVehicle(INativeVehicle vehicle, VehicleSeat seat)

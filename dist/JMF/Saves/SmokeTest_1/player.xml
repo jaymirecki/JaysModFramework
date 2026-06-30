@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PlayerState>
+  <Ped>
+    <ModelName>player_two</ModelName>
+    <Position>
+      <X>428.0</X>
+      <Y>-982.0</Y>
+      <Z>30.7</Z>
+    </Position>
+    <Heading>270.0</Heading>
+    <Health>175</Health>
+    <Armor>25</Armor>
+  </Ped>
+</PlayerState>
